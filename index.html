@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b2545">
+  <meta name="description" content="Calcetto Saponato e Splash Volley – Sagra della Madonna della Neve, Vezzano sul Crostolo. Squadre, calendario, risultati, marcatori e voto MVP.">
+  <title>Splash SMDN 2026 – Sagra Madonna della Neve</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#top">🌊 <span>Splash <b>SMDN</b></span></a>
+      <nav class="topnav">
+        <a href="#secSquadre">Squadre</a>
+        <a href="#secCalendario">Calendario</a>
+        <a href="#secClassifica">Classifica</a>
+        <a href="#secMvp">MVP</a>
+        <a href="#" id="btnRegolamento">Regolamento</a>
+      </nav>
+      <div class="topbar-actions">
+        <a id="linkInstagram" href="#" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        </a>
+        <button id="btnAdmin" class="btn-ghost" title="Area admin" aria-label="Area admin">🔐</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ===== HERO ===== -->
+    <section class="hero">
+      <div class="hero-bubbles" aria-hidden="true"></div>
+      <h1>SPLASH <span>SMDN</span> 2026</h1>
+      <p class="hero-sub">Sagra della Madonna della Neve · Vezzano sul Crostolo</p>
+      <div class="hero-dates">
+        <div class="hero-date calcetto">⚽ <b>Calcetto Saponato</b><br>gio 30 – ven 31 luglio · 17:00-22:00</div>
+        <div class="hero-date volley">🏐 <b>Splash Volley</b><br>sab 1 – dom 2 agosto · 15:00-21:30</div>
+      </div>
+      <div class="hero-cta">
+        <a id="linkIscrizioni" href="#" target="_blank" rel="noopener" class="btn btn-primary">📝 Iscrizioni</a>
+        <a id="linkWhatsapp" href="#" target="_blank" rel="noopener" class="btn btn-green">📸 Invia foto/video</a>
+      </div>
+      <p class="hero-note">Le foto e i video inviati potranno essere pubblicati sulla pagina Instagram <a id="linkInstagramText" href="#" target="_blank" rel="noopener">@sagra_vezzano</a></p>
+    </section>
+
+    <!-- ===== SELETTORE TORNEO ===== -->
+    <div class="tourney-switch" role="tablist">
+      <button class="tourney-tab active" data-tourney="calcetto" role="tab">⚽ Calcetto Saponato</button>
+      <button class="tourney-tab" data-tourney="volley" role="tab">🏐 Splash Volley</button>
+    </div>
+
+    <!-- ===== PROSSIME PARTITE ===== -->
+    <section class="card" id="secProssime">
+      <h2>⏳ Prossime partite</h2>
+      <div id="nextMatches" class="next-matches"><p class="muted">Caricamento…</p></div>
+    </section>
+
+    <!-- ===== SQUADRE ===== -->
+    <section class="card" id="secSquadre">
+      <h2 id="squadreTitle">🏆 Squadre</h2>
+      <div id="teamsGrid" class="teams-grid"><p class="muted">Caricamento…</p></div>
+    </section>
+
+    <!-- ===== CALENDARIO ===== -->
+    <section class="card" id="secCalendario">
+      <h2>📅 Calendario partite</h2>
+      <div id="matchesList" class="matches-list"><p class="muted">Caricamento…</p></div>
+    </section>
+
+    <!-- ===== CLASSIFICA ===== -->
+    <section class="card" id="secClassifica">
+      <h2>🏆 Classifica</h2>
+      <div id="standings"><p class="muted">Classifica non ancora disponibile…</p></div>
+    </section>
+
+    <!-- ===== MARCATORI (solo calcetto) ===== -->
+    <section class="card" id="secMarcatori">
+      <h2>⚽ Classifica marcatori</h2>
+      <div id="scorers"><p class="muted">Nessun gol registrato…</p></div>
+    </section>
+
+    <!-- ===== MVP ===== -->
+    <section class="card" id="secMvp">
+      <h2>⭐ Vota il miglior giocatore</h2>
+      <p class="muted">Un voto per torneo per dispositivo. Vota chi ti ha fatto divertire di più!</p>
+      <div id="mvpArea"><p class="muted">Caricamento…</p></div>
+      <h3 style="margin-top:1.2rem">I più votati</h3>
+      <div id="mvpRanking"><p class="muted">Nessun voto per ora…</p></div>
+    </section>
+
+    <!-- ===== INFO ===== -->
+    <section class="card" id="secInfo">
+      <h2>ℹ️ Info & contatti</h2>
+      <p>Per informazioni sul torneo:</p>
+      <p><b>Simone</b> <a href="tel:+393465210969">346 5210969</a> · <b>Matteo</b> <a href="tel:+393472897046">347 2897046</a></p>
+      <p>Quote di iscrizione (incluse quota assicurativa CSI): calcetto saponato 60€, splash volley 90€, calcetto + volley 110€. Pagamento con bonifico, Satispay o PayPal.</p>
+      <p><b>Ricchi premi</b> alle squadre offerti dagli sponsor e dalla Sagra Madonna della Neve!</p>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>Sagra della Madonna della Neve · Vezzano sul Crostolo</p>
+    <p class="muted">Sito realizzato con strumenti di Intelligenza Artificiale</p>
+  </footer>
+
+  <!-- ===== MODAL REGOLAMENTO ===== -->
+  <div class="modal" id="modalRegolamento" hidden>
+    <div class="modal-box">
+      <button class="modal-close" data-close>✕</button>
+      <h2>📋 Regolamento</h2>
+
+      <h3>⚽ Calcetto saponato – XVII edizione</h3>
+      <ul>
+        <li>Orari indicativi: giovedì 30 – venerdì 31 luglio, 17:00 – 22:00</li>
+        <li>Età minima <b>15 anni</b> (dai 2011)</li>
+        <li>Si gioca in 5 con <b>almeno 1 ragazza sempre in campo</b></li>
+        <li>Verrà fornito un caschetto prima dell'ingresso in campo</li>
+        <li>Non si gioca con calzature, no interventi in scivolata</li>
+      </ul>
+
+      <h3>🏐 Splash volley – IV edizione</h3>
+      <ul>
+        <li>Orari indicativi: sabato 1 – domenica 2 agosto, 15:00 – 21:30</li>
+        <li>Si gioca 6 vs 6 con <b>due donne sempre in campo</b></li>
+        <li>Rotazione come nella pallavolo</li>
+      </ul>
+
+      <p><b>Segnalare per tempo eventuali indisponibilità</b> durante le fasce orarie indicate. Il calendario preciso delle partite verrà indicato qualche giorno prima dell'inizio del torneo.</p>
+
+      <h3>🌊 Fanta Splash</h3>
+      <p><b>Pre-torneo</b></p>
+      <ul>
+        <li>Squadre già partecipanti nelle scorse edizioni: <b>+30 pt</b></li>
+        <li>Invita una nuova squadra ad iscriversi: <b>+50 pt / squadra</b></li>
+        <li>Iscrizione squadra entro il 7 luglio: <b>+50 pt</b></li>
+        <li>Squadra partecipante a entrambi i tornei: <b>+50 pt</b></li>
+      </ul>
+      <p><b>Durante il torneo</b></p>
+      <ul>
+        <li>Stories su Instagram con foto di squadra (max 100 pt)</li>
+        <li>Stories su Instagram con azione di gioco (max 100 pt)</li>
+        <li>Premio bar – assegnato dalla birreria (max 50 pt)</li>
+        <li>Fair play – assegnato dagli arbitri (max 70 pt)</li>
+      </ul>
+      <p>Per essere valide le stories occorre <b>taggare @sagra_vezzano</b> e avere <b>minimo 2 repost</b>.</p>
+      <p>I premi includono punti da aggiungere a quelli di gioco e bonus da consumarsi durante la sagra, offerti dagli sponsor.</p>
+
+      <h3>💶 Iscrizioni</h3>
+      <ul>
+        <li>Calcetto saponato 60€ · Splash volley 90€ · Calcetto + volley 110€ (quota assicurativa inclusa)</li>
+        <li>Individuare nome squadra, colore magliette (solo calcetto) e capitano</li>
+        <li>Ogni giocatore si registra tramite il <a id="linkIscrizioni2" href="#" target="_blank" rel="noopener">modulo di iscrizione</a> (copertura assicurativa CSI)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== MODAL ADMIN ===== -->
+  <div class="modal" id="modalAdmin" hidden>
+    <div class="modal-box">
+      <button class="modal-close" data-close>✕</button>
+
+      <!-- Login -->
+      <div id="adminLogin">
+        <h2>🔑 Area Admin</h2>
+        <p class="muted">Accesso riservato allo staff.</p>
+        <input type="email" id="adminEmail" placeholder="Email" autocomplete="username">
+        <input type="password" id="adminPass" placeholder="Password" autocomplete="current-password">
+        <p id="adminLoginError" class="error" hidden>❌ Credenziali errate</p>
+        <button id="btnLogin" class="btn btn-primary">🔓 Accedi</button>
+      </div>
+
+      <!-- Pannello -->
+      <div id="adminPanel" hidden>
+        <div class="admin-head">
+          <h2>🛠 Pannello admin</h2>
+          <button id="btnLogout" class="btn-ghost">🚪 Esci</button>
+        </div>
+
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-atab="squadre">Squadre</button>
+          <button class="admin-tab" data-atab="partite">Partite</button>
+          <button class="admin-tab" data-atab="risultati">Risultati</button>
+        </div>
+
+        <!-- Squadre -->
+        <div class="admin-pane" id="apane-squadre">
+          <h3>➕ Nuova squadra</h3>
+          <input type="text" id="tName" placeholder="Nome squadra">
+          <select id="tTourney">
+            <option value="calcetto">⚽ Calcetto</option>
+            <option value="volley">🏐 Volley</option>
+            <option value="entrambi">⚽🏐 Entrambi</option>
+          </select>
+          <input type="text" id="tEmoji" placeholder="Emoji stemma (es. 🦈)" maxlength="4">
+          <textarea id="tPlayers" rows="4" placeholder="Giocatori, uno per riga"></textarea>
+          <button id="btnAddTeam" class="btn btn-primary">✅ Salva squadra</button>
+          <h3>Squadre esistenti</h3>
+          <div id="adminTeamsList"></div>
+        </div>
+
+        <!-- Partite -->
+        <div class="admin-pane" id="apane-partite" hidden>
+          <h3>➕ Nuova partita</h3>
+          <select id="mTourney">
+            <option value="calcetto">⚽ Calcetto</option>
+            <option value="volley">🏐 Volley</option>
+          </select>
+          <select id="mTeamA"><option value="">Squadra 1…</option></select>
+          <select id="mTeamB"><option value="">Squadra 2…</option></select>
+          <select id="mDay">
+            <option value="GIO 30/07">GIO 30/07</option>
+            <option value="VEN 31/07">VEN 31/07</option>
+            <option value="SAB 01/08">SAB 01/08</option>
+            <option value="DOM 02/08">DOM 02/08</option>
+          </select>
+          <input type="time" id="mTime" value="17:00">
+          <input type="text" id="mLabel" placeholder="Fase (es. Gironi, Semifinale) – opzionale">
+          <button id="btnAddMatch" class="btn btn-primary">✅ Aggiungi partita</button>
+          <h3>Partite inserite</h3>
+          <div id="adminMatchesList"></div>
+        </div>
+
+        <!-- Risultati -->
+        <div class="admin-pane" id="apane-risultati" hidden>
+          <h3>Aggiorna risultato</h3>
+          <select id="rMatch"><option value="">Seleziona partita…</option></select>
+          <div id="rEditor" hidden>
+            <div class="score-row">
+              <span id="rTeamAName"></span>
+              <input type="number" id="rScoreA" min="0" value="0">
+              <b>–</b>
+              <input type="number" id="rScoreB" min="0" value="0">
+              <span id="rTeamBName"></span>
+            </div>
+            <label class="check-row"><input type="checkbox" id="rPlayed"> Partita conclusa</label>
+            <div id="rScorersBox" hidden>
+              <h3>⚽ Marcatori</h3>
+              <div id="rScorersList"></div>
+              <div class="scorer-add">
+                <select id="rScorerTeam"><option value="A">Squadra 1</option><option value="B">Squadra 2</option></select>
+                <select id="rScorerPlayer"></select>
+                <input type="number" id="rScorerGoals" min="1" value="1" title="Gol">
+                <button id="btnAddScorer" class="btn-ghost">➕</button>
+              </div>
+            </div>
+            <button id="btnSaveResult" class="btn btn-primary">💾 Salva risultato</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- Firebase (compat SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script src="js/config.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/sample-data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
