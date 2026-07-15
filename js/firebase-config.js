@@ -7,10 +7,10 @@
 // con dati di esempio (nessun salvataggio reale).
 
 const FIREBASE_CONFIG = {
-  apiKey: "REPLACE_ME",
-  authDomain: "REPLACE_ME.firebaseapp.com",
-  projectId: "REPLACE_ME",
-  storageBucket: "REPLACE_ME.appspot.com",
-  messagingSenderId: "REPLACE_ME",
-  appId: "REPLACE_ME",
+  apiKey: "AIzaSyASMf3nFf_L8Dn5X9SO9UoxiBadasHvxW8",
+  authDomain: "smdn-splash.firebaseapp.com",
+  projectId: "smdn-splash",
+  storageBucket: "smdn-splash.firebasestorage.app",
+  messagingSenderId: "138489452302",
+  appId: "1:138489452302:web:caf0c6dd7c420bf38da95f"
 };

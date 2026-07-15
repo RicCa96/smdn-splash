@@ -39,7 +39,7 @@ La config Firebase in `firebase-config.js` è pubblica per design: la protezione
 cd smdn-splash
 git init && git add -A && git commit -m "Splash SMDN 2026"
 # crea un repo su github.com, poi:
-git remote add origin https://github.com/TUO_UTENTE/smdn-splash.git
+git remote add origin git@github.com:RicCa96/smdn-splash.git
 git push -u origin main
 ```
 
