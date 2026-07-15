@@ -48,6 +48,12 @@ Il sito sarà su `https://TUO_UTENTE.github.io/smdn-splash/` in 1-2 minuti.
 
 Per aggiornare il sito: `git add -A && git commit -m "update" && git push`. I dati (squadre, partite, voti) invece si aggiornano dal pannello admin, senza toccare il codice.
 
+### URL alternativi gratuiti
+
+- **`smdn-splash.github.io`**: crea una **organization** GitHub gratuita chiamata `smdn-splash`, poi al suo interno un repo chiamato esattamente `smdn-splash.github.io` e attiva Pages: il sito sarà su quell'URL, senza il tuo username.
+- **`smdn-splash.web.app`**: Firebase Hosting (già incluso nel progetto Firebase, gratis): `npm i -g firebase-tools && firebase login && firebase init hosting` (public: `.`) `&& firebase deploy`.
+- Dominio personalizzato (es. `splashsmdn.it`): unica opzione a pagamento (~10€/anno), collegabile sia a GitHub Pages sia a Firebase Hosting.
+
 ## Configurazione rapida
 
 `js/config.js` contiene link Instagram, numero WhatsApp per foto/video, link iscrizioni e giorni del torneo.
