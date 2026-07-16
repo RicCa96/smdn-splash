@@ -77,3 +77,9 @@ firestore.rules     regole di sicurezza Firestore
 2. **Squadre:** aggiungi nome, torneo, emoji e giocatori (uno per riga).
 3. **Partite:** scegli torneo, squadre, giorno e ora.
 4. **Risultati:** seleziona la partita, inserisci punteggio, spunta "Partita conclusa"; per il calcetto aggiungi i marcatori. Classifiche e marcatori si aggiornano da soli su tutti i dispositivi.
+
+
+Migliorare invio foto. Caricamento immagini con salvataggio da qualche parte + consultazione sul sito.
+Aggiungere gestione punti e classifica del fanta.
+Miglior giocatore: aggiungere distinzione voto miglior maschio e miglior femmina + opzione cambia voto.
+Quando cancello squadra, i voti ai giocatori devono sparire.
