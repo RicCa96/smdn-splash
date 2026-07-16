@@ -4,13 +4,16 @@
 const state = {
   teams: [],
   matches: [],
-  votes: [],
-  tourney: "calcetto", // torneo selezionato
-  demo: false,         // true se Firebase non è configurato
+  votes: [],    // voti MVP (con id documento)
+  fanta: [],    // punti fanta
+  photos: [],   // foto/video approvati
+  tourney: "calcetto",
+  demo: false,
+  uid: null,    // uid Firebase (anonimo o admin)
 };
 
-let db = null;   // Firestore
-let auth = null; // Firebase Auth
+let db = null;
+let auth = null;
 
 // ---------- Inizializzazione ----------
 (function init() {
@@ -19,18 +22,30 @@ let auth = null; // Firebase Auth
   setupStaticLinks();
   setupTabs();
   setupModals();
+  setupUpload();
   spawnBubbles();
 
   if (state.demo) {
     console.warn("MODALITÀ DEMO: Firebase non configurato, uso dati di esempio (vedi README.md)");
+    state.uid = "demo";
     state.teams = [...SAMPLE_DATA.teams];
     state.matches = [...SAMPLE_DATA.matches];
     state.votes = [...SAMPLE_DATA.votes];
+    state.fanta = [...SAMPLE_DATA.fanta];
+    state.photos = [...SAMPLE_DATA.photos];
     renderAll();
   } else {
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.firestore();
     auth = firebase.auth();
+    auth.onAuthStateChanged((u) => {
+      if (u) {
+        state.uid = u.uid;
+        renderMvp();
+      } else {
+        auth.signInAnonymously().catch((e) => console.error("Auth anonima fallita:", e));
+      }
+    });
     subscribeData();
   }
 })();
@@ -45,8 +60,17 @@ function subscribeData() {
     renderAll();
   });
   db.collection("votes").onSnapshot((snap) => {
-    state.votes = snap.docs.map((d) => d.data());
+    state.votes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderMvp();
+  });
+  db.collection("fanta").onSnapshot((snap) => {
+    state.fanta = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderFanta();
+    if (typeof renderAdmin === "function") renderAdmin();
+  });
+  db.collection("photos").where("approved", "==", true).onSnapshot((snap) => {
+    state.photos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderGallery();
   });
 }
 
@@ -78,6 +102,8 @@ function setupModals() {
     e.preventDefault();
     openModal("modalRegolamento");
   });
+  document.querySelectorAll(".open-regolamento").forEach((a) =>
+    a.addEventListener("click", (e) => { e.preventDefault(); openModal("modalRegolamento"); }));
   document.getElementById("btnAdmin").addEventListener("click", () => openModal("modalAdmin"));
   document.querySelectorAll(".modal").forEach((m) => {
     m.addEventListener("click", (e) => {
@@ -91,6 +117,11 @@ function openModal(id) { document.getElementById(id).hidden = false; }
 function teamById(id) { return state.teams.find((t) => t.id === id); }
 function teamName(id) { const t = teamById(id); return t ? `${t.emoji || "🏳️"} ${t.name}` : "?"; }
 function inTourney(t) { return t.tournament === state.tourney || t.tournament === "entrambi"; }
+// Normalizza i giocatori: stringhe legacy -> oggetti {name, gender}
+function normPlayers(t) {
+  return ((t && t.players) || []).map((p) =>
+    typeof p === "string" ? { name: p, gender: "m" } : { name: p.name, gender: p.gender === "f" ? "f" : "m" });
+}
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -109,7 +140,9 @@ function renderAll() {
   renderMatches();
   renderStandings();
   renderScorers();
+  renderFanta();
   renderMvp();
+  renderGallery();
   if (typeof renderAdmin === "function") renderAdmin();
 }
 
@@ -147,7 +180,7 @@ function renderTeams() {
     <div class="team-card">
       <h3><span class="emoji">${esc(t.emoji || "🏳️")}</span> ${esc(t.name)}
         ${t.tournament === "entrambi" ? '<span class="team-badge">⚽+🏐</span>' : ""}</h3>
-      <ul>${(t.players || []).map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
+      <ul>${normPlayers(t).map((p) => `<li>${esc(p.name)}${p.gender === "f" ? " <span class='f-mark'>♀</span>" : ""}</li>`).join("")}</ul>
     </div>`).join("");
 }
 
@@ -235,73 +268,130 @@ function renderScorers() {
     </table>`;
 }
 
-// ---------- MVP ----------
-function votedKey() { return `smdn_mvp_voted_${state.tourney}`; }
-
-function renderMvp() {
-  const area = document.getElementById("mvpArea");
-  const already = localStorage.getItem(votedKey());
-  if (already) {
-    area.innerHTML = `<div class="mvp-voted">✅ Hai già votato per questo torneo: <b>${esc(already)}</b>. Grazie!</div>`;
-  } else {
-    const teams = state.teams.filter(inTourney).sort((a, b) => a.name.localeCompare(b.name));
-    if (!teams.length) {
-      area.innerHTML = '<p class="muted">La votazione si aprirà quando saranno pubblicate le squadre.</p>';
-    } else {
-      area.innerHTML = `
-        <div class="mvp-form">
-          <select id="mvpTeam"><option value="">Squadra…</option>
-            ${teams.map((t) => `<option value="${esc(t.id)}">${esc(t.emoji || "")} ${esc(t.name)}</option>`).join("")}
-          </select>
-          <select id="mvpPlayer" disabled><option value="">Giocatore…</option></select>
-          <button id="btnVote" class="btn btn-primary" disabled>⭐ Vota</button>
-        </div>`;
-      const selTeam = document.getElementById("mvpTeam");
-      const selPlayer = document.getElementById("mvpPlayer");
-      const btn = document.getElementById("btnVote");
-      selTeam.addEventListener("change", () => {
-        const t = teamById(selTeam.value);
-        selPlayer.innerHTML = '<option value="">Giocatore…</option>' +
-          ((t && t.players) || []).map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
-        selPlayer.disabled = !t;
-        btn.disabled = true;
-      });
-      selPlayer.addEventListener("change", () => (btn.disabled = !selPlayer.value));
-      btn.addEventListener("click", () => submitVote(selTeam.value, selPlayer.value));
-    }
+// ---------- Fanta Splash ----------
+function renderFanta() {
+  const rankEl = document.getElementById("fantaRanking");
+  const logEl = document.getElementById("fantaLog");
+  if (!state.fanta.length) {
+    rankEl.innerHTML = '<p class="muted">Nessun punto assegnato per ora…</p>';
+    logEl.innerHTML = "";
+    return;
   }
-  renderMvpRanking();
+  const totals = {};
+  state.fanta.forEach((f) => {
+    totals[f.teamId] = (totals[f.teamId] || 0) + (Number(f.points) || 0);
+  });
+  const rows = Object.entries(totals)
+    .map(([teamId, pts]) => ({ teamId, pts }))
+    .sort((a, b) => b.pts - a.pts);
+  rankEl.innerHTML = `
+    <table class="rank">
+      <tr><th>#</th><th>Squadra</th><th>Punti Fanta</th></tr>
+      ${rows.map((r, i) => `
+        <tr><td>${i + 1}</td><td>${esc(teamName(r.teamId))}</td><td><b>${r.pts}</b></td></tr>`).join("")}
+    </table>`;
+  const last = [...state.fanta].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 6);
+  logEl.innerHTML = `<h3>Ultimi punti assegnati</h3>` + last.map((f) => `
+    <div class="fanta-entry">
+      <span class="fanta-pts ${f.points < 0 ? "neg" : ""}">${f.points > 0 ? "+" : ""}${f.points}</span>
+      <span><b>${esc(teamName(f.teamId))}</b> · ${esc(f.reason)}</span>
+    </div>`).join("");
 }
 
-async function submitVote(teamId, player) {
+// ---------- MVP ----------
+function voteDocId(cat) { return `${state.uid}_${state.tourney}_${cat}`; }
+function myVote(cat) {
+  if (!state.uid) return null;
+  return state.votes.find((v) => v.id === voteDocId(cat)) || null;
+}
+
+function renderMvp() {
+  renderMvpCategory("m");
+  renderMvpCategory("f");
+}
+
+function renderMvpCategory(cat) {
+  const area = document.getElementById(cat === "m" ? "mvpAreaM" : "mvpAreaF");
+  const mine = myVote(cat);
+  const teams = state.teams.filter(inTourney).sort((a, b) => a.name.localeCompare(b.name));
+  const anyPlayers = teams.some((t) => normPlayers(t).some((p) => p.gender === cat));
+
+  if (mine && !area.dataset.editing) {
+    area.innerHTML = `
+      <div class="mvp-voted">✅ Il tuo voto: <b>${esc(mine.player)}</b> <span class="muted">(${esc(mine.teamName)})</span>
+        <button class="btn-ghost mvp-change">✏️ Cambia voto</button></div>`;
+    area.querySelector(".mvp-change").addEventListener("click", () => {
+      area.dataset.editing = "1";
+      renderMvpCategory(cat);
+    });
+  } else if (!anyPlayers) {
+    area.innerHTML = '<p class="muted">La votazione si aprirà quando saranno pubblicate le squadre.</p>';
+  } else {
+    area.innerHTML = `
+      <div class="mvp-form">
+        <select class="mvpTeam"><option value="">Squadra…</option>
+          ${teams.map((t) => `<option value="${esc(t.id)}">${esc(t.emoji || "")} ${esc(t.name)}</option>`).join("")}
+        </select>
+        <select class="mvpPlayer" disabled><option value="">${cat === "f" ? "Giocatrice…" : "Giocatore…"}</option></select>
+        <button class="btn btn-primary mvpVote" disabled>⭐ Vota</button>
+        ${mine ? '<button class="btn-ghost mvpCancel">Annulla</button>' : ""}
+      </div>`;
+    const selTeam = area.querySelector(".mvpTeam");
+    const selPlayer = area.querySelector(".mvpPlayer");
+    const btn = area.querySelector(".mvpVote");
+    selTeam.addEventListener("change", () => {
+      const t = teamById(selTeam.value);
+      const players = t ? normPlayers(t).filter((p) => p.gender === cat) : [];
+      selPlayer.innerHTML = `<option value="">${cat === "f" ? "Giocatrice…" : "Giocatore…"}</option>` +
+        players.map((p) => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join("");
+      selPlayer.disabled = !players.length;
+      btn.disabled = true;
+    });
+    selPlayer.addEventListener("change", () => (btn.disabled = !selPlayer.value));
+    btn.addEventListener("click", () => submitVote(cat, selTeam.value, selPlayer.value, area));
+    const cancel = area.querySelector(".mvpCancel");
+    if (cancel) cancel.addEventListener("click", () => {
+      delete area.dataset.editing;
+      renderMvpCategory(cat);
+    });
+  }
+  renderMvpRanking(cat);
+}
+
+async function submitVote(cat, teamId, player, area) {
   if (!teamId || !player) return;
+  if (!state.uid) return toast("⏳ Connessione in corso, riprova tra un attimo");
   const t = teamById(teamId);
   const vote = {
     player,
+    teamId,
     teamName: t ? t.name : "?",
     tournament: state.tourney,
+    category: cat,
+    uid: state.uid,
     ts: Date.now(),
   };
   if (state.demo) {
-    state.votes.push(vote);
+    state.votes = state.votes.filter((v) => v.id !== voteDocId(cat));
+    state.votes.push({ id: voteDocId(cat), ...vote });
   } else {
     try {
-      await db.collection("votes").add(vote);
+      await db.collection("votes").doc(voteDocId(cat)).set(vote);
     } catch (e) {
       console.error(e);
       toast("❌ Errore nell'invio del voto, riprova");
       return;
     }
   }
-  localStorage.setItem(votedKey(), `${player} (${vote.teamName})`);
+  delete area.dataset.editing;
   toast("⭐ Grazie per il tuo voto!");
-  renderMvp();
+  renderMvpCategory(cat);
 }
 
-function renderMvpRanking() {
-  const el = document.getElementById("mvpRanking");
+function renderMvpRanking(cat) {
+  const el = document.getElementById(cat === "m" ? "mvpRankingM" : "mvpRankingF");
   const tally = {};
-  state.votes.filter((v) => v.tournament === state.tourney).forEach((v) => {
+  state.votes.filter((v) => v.tournament === state.tourney && (v.category || "m") === cat).forEach((v) => {
     const key = `${v.player}|${v.teamName}`;
     tally[key] = tally[key] || { player: v.player, teamName: v.teamName, n: 0 };
     tally[key].n++;
@@ -320,9 +410,108 @@ function renderMvpRanking() {
     </div>`).join("");
 }
 
+// ---------- Galleria ----------
+function cloudinaryReady() {
+  return SITE_CONFIG.cloudinaryCloudName && SITE_CONFIG.cloudinaryCloudName !== "REPLACE_ME";
+}
+
+function setupUpload() {
+  const input = document.getElementById("phFile");
+  if (!cloudinaryReady() && !state.demo) {
+    document.querySelector(".upload-row").hidden = true;
+    return;
+  }
+  input.addEventListener("change", async () => {
+    const files = [...input.files];
+    input.value = "";
+    const team = document.getElementById("phTeam").value.trim();
+    if (!team) return toast("Scrivi prima il nome della tua squadra!");
+    for (const file of files) await uploadFile(file, team);
+  });
+}
+
+async function uploadFile(file, team) {
+  const statusEl = document.getElementById("uploadStatus");
+  const isVideo = file.type.startsWith("video");
+  const maxMB = isVideo ? 100 : 10;
+  if (file.size > maxMB * 1024 * 1024) {
+    toast(`❌ ${file.name}: max ${maxMB}MB`);
+    return;
+  }
+  const row = document.createElement("p");
+  row.className = "muted";
+  row.textContent = `⏳ Caricamento ${file.name}…`;
+  statusEl.appendChild(row);
+
+  try {
+    let url, type = isVideo ? "video" : "image";
+    if (state.demo) {
+      url = URL.createObjectURL(file);
+      state.photos.push({ id: "demo_" + Math.random().toString(36).slice(2, 8), url, type, team, approved: true, ts: Date.now() });
+      renderGallery();
+    } else {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("upload_preset", SITE_CONFIG.cloudinaryUploadPreset);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${SITE_CONFIG.cloudinaryCloudName}/auto/upload`, { method: "POST", body: fd });
+      if (!res.ok) throw new Error("upload fallito");
+      const data = await res.json();
+      url = data.secure_url;
+      type = data.resource_type === "video" ? "video" : "image";
+      await db.collection("photos").add({ url, type, team, approved: false, uid: state.uid || "", ts: Date.now() });
+    }
+    row.textContent = state.demo
+      ? `✅ ${file.name} caricato (demo)`
+      : `✅ ${file.name} inviato! Sarà visibile dopo l'approvazione dello staff.`;
+  } catch (e) {
+    console.error(e);
+    row.textContent = `❌ Errore nel caricamento di ${file.name}, riprova`;
+  }
+}
+
+// Miniatura Cloudinary (inserisce trasformazione nell'URL)
+function thumbUrl(p) {
+  if (!p.url.includes("/upload/")) return p.url;
+  const t = p.type === "video" ? "w_400,c_fill,q_auto,so_0" : "w_400,c_fill,q_auto";
+  let u = p.url.replace("/upload/", `/upload/${t}/`);
+  if (p.type === "video") u = u.replace(/\.\w+$/, ".jpg"); // poster frame
+  return u;
+}
+
+function renderGallery() {
+  const el = document.getElementById("gallery");
+  const items = state.photos.filter((p) => p.approved).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  if (!items.length) {
+    el.innerHTML = '<p class="muted">Nessun contenuto per ora… carica tu la prima foto!</p>';
+    return;
+  }
+  el.innerHTML = items.map((p, i) => `
+    <figure class="gallery-item" data-i="${i}">
+      <img src="${esc(thumbUrl(p))}" alt="Foto di ${esc(p.team || "")}" loading="lazy">
+      ${p.type === "video" ? '<span class="play-badge">▶</span>' : ""}
+      <figcaption>${esc(p.team || "")}</figcaption>
+    </figure>`).join("");
+  el.querySelectorAll(".gallery-item").forEach((fig) => {
+    fig.addEventListener("click", () => openLightbox(items[Number(fig.dataset.i)]));
+  });
+}
+
+function openLightbox(p) {
+  const box = document.getElementById("lightboxContent");
+  box.innerHTML = p.type === "video"
+    ? `<video src="${esc(p.url)}" controls autoplay playsinline></video>`
+    : `<img src="${esc(p.url)}" alt="Foto di ${esc(p.team || "")}">`;
+  openModal("modalLightbox");
+  document.getElementById("modalLightbox").addEventListener("click", () => {
+    const v = box.querySelector("video");
+    if (v) v.pause();
+  }, { once: true });
+}
+
 // ---------- Bollicine decorative ----------
 function spawnBubbles() {
   const box = document.querySelector(".hero-bubbles");
+  if (!box) return;
   for (let i = 0; i < 14; i++) {
     const b = document.createElement("i");
     const size = 10 + Math.random() * 40;

@@ -2,8 +2,10 @@
 
 const admin = {
   logged: false,
-  scorers: [],       // marcatori in modifica per la partita selezionata
+  scorers: [],
   selMatchId: null,
+  photos: [],        // tutte le foto (anche non approvate), solo per admin
+  photosUnsub: null,
 };
 
 // ---------- Login / logout ----------
@@ -29,22 +31,36 @@ document.getElementById("btnLogin").addEventListener("click", async () => {
 });
 
 document.getElementById("btnLogout").addEventListener("click", async () => {
-  if (!state.demo && auth) await auth.signOut();
   admin.logged = false;
+  if (admin.photosUnsub) { admin.photosUnsub(); admin.photosUnsub = null; }
   document.getElementById("adminPanel").hidden = true;
   document.getElementById("adminLogin").hidden = false;
+  if (!state.demo && auth) await auth.signOut(); // onAuthStateChanged farà login anonimo
 });
 
 function showAdminPanel() {
   document.getElementById("adminLogin").hidden = true;
   document.getElementById("adminPanel").hidden = false;
+  subscribeAdminPhotos();
   renderAdmin();
 }
 
-// Se già autenticato (refresh pagina)
+// Se già autenticato come admin (refresh pagina)
 if (!state.demo && auth) {
   auth.onAuthStateChanged((u) => {
-    if (u) { admin.logged = true; showAdminPanel(); }
+    if (u && !u.isAnonymous) { admin.logged = true; showAdminPanel(); }
+  });
+}
+
+function subscribeAdminPhotos() {
+  if (state.demo) {
+    admin.photos = state.photos;
+    return;
+  }
+  if (admin.photosUnsub) return;
+  admin.photosUnsub = db.collection("photos").onSnapshot((snap) => {
+    admin.photos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderAdminPhotos();
   });
 }
 
@@ -87,6 +103,14 @@ async function dbDelete(coll, id) {
 }
 
 // ---------- Squadre ----------
+// "Nome (F)" -> {name: "Nome", gender: "f"}
+function parsePlayers(text) {
+  return text.split("\n").map((s) => s.trim()).filter(Boolean).map((line) => {
+    const f = /\((f|F)\)\s*$/.test(line);
+    return { name: line.replace(/\((f|F)\)\s*$/, "").trim(), gender: f ? "f" : "m" };
+  });
+}
+
 document.getElementById("btnAddTeam").addEventListener("click", async () => {
   const name = document.getElementById("tName").value.trim();
   if (!name) return toast("Inserisci il nome della squadra");
@@ -94,7 +118,7 @@ document.getElementById("btnAddTeam").addEventListener("click", async () => {
     name,
     tournament: document.getElementById("tTourney").value,
     emoji: document.getElementById("tEmoji").value.trim() || "🏳️",
-    players: document.getElementById("tPlayers").value.split("\n").map((s) => s.trim()).filter(Boolean),
+    players: parsePlayers(document.getElementById("tPlayers").value),
   };
   try {
     await dbAdd("teams", team);
@@ -158,33 +182,119 @@ document.getElementById("btnSaveResult").addEventListener("click", async () => {
   } catch (e) { console.error(e); toast("❌ Errore nel salvataggio"); }
 });
 
+// ---------- Fanta ----------
+document.getElementById("fReason").addEventListener("change", () => {
+  const sel = document.getElementById("fReason");
+  document.getElementById("fReasonCustom").hidden = sel.value !== "_altro";
+  // precompila i punti se il motivo li contiene, es. "(+50)"
+  const m = sel.value.match(/\(\+?(-?\d+)\)/);
+  if (m) document.getElementById("fPoints").value = m[1];
+});
+
+document.getElementById("btnAddFanta").addEventListener("click", async () => {
+  const teamId = document.getElementById("fTeam").value;
+  const selReason = document.getElementById("fReason").value;
+  const reason = selReason === "_altro"
+    ? document.getElementById("fReasonCustom").value.trim()
+    : selReason.replace(/\s*\(\+?-?\d+\)\s*$/, "");
+  const points = Number(document.getElementById("fPoints").value);
+  if (!teamId) return toast("Seleziona la squadra");
+  if (!reason) return toast("Indica il motivo");
+  if (!points) return toast("Indica i punti");
+  try {
+    await dbAdd("fanta", { teamId, reason, points, ts: Date.now() });
+    document.getElementById("fPoints").value = "";
+    document.getElementById("fReasonCustom").value = "";
+    toast("✅ Punti fanta assegnati");
+  } catch (e) { console.error(e); toast("❌ Errore nel salvataggio"); }
+});
+
+async function adminDeleteFanta(id) {
+  if (!confirm("Rimuovere questa voce fanta?")) return;
+  try { await dbDelete("fanta", id); toast("🗑️ Voce rimossa"); }
+  catch (e) { console.error(e); toast("❌ Errore"); }
+}
+
+// ---------- Foto ----------
+async function adminApprovePhoto(id) {
+  try { await adminUpdatePhoto(id, { approved: true }); toast("✅ Pubblicata"); }
+  catch (e) { console.error(e); toast("❌ Errore"); }
+}
+async function adminUpdatePhoto(id, data) {
+  if (state.demo) {
+    const p = admin.photos.find((x) => x.id === id);
+    if (p) Object.assign(p, data);
+    renderAdminPhotos(); renderGallery();
+    return;
+  }
+  await db.collection("photos").doc(id).update(data);
+}
+async function adminDeletePhoto(id) {
+  if (!confirm("Eliminare questo contenuto?")) return;
+  try {
+    if (state.demo) {
+      admin.photos = admin.photos.filter((x) => x.id !== id);
+      state.photos = state.photos.filter((x) => x.id !== id);
+      renderAdminPhotos(); renderGallery();
+    } else {
+      await db.collection("photos").doc(id).delete();
+    }
+    toast("🗑️ Contenuto eliminato");
+  } catch (e) { console.error(e); toast("❌ Errore"); }
+}
+
+// ---------- Cancellazione squadra a cascata ----------
+async function adminDeleteTeam(id) {
+  const t = teamById(id);
+  if (!confirm(`Eliminare la squadra "${t ? t.name : "?"}"?\nVerranno rimossi anche i voti MVP dei suoi giocatori e i suoi punti fanta.`)) return;
+  try {
+    if (state.demo) {
+      state.teams = state.teams.filter((x) => x.id !== id);
+      state.votes = state.votes.filter((v) => v.teamId !== id);
+      state.fanta = state.fanta.filter((f) => f.teamId !== id);
+      renderAll();
+    } else {
+      const batch = db.batch();
+      batch.delete(db.collection("teams").doc(id));
+      const votes = await db.collection("votes").where("teamId", "==", id).get();
+      votes.forEach((d) => batch.delete(d.ref));
+      const fanta = await db.collection("fanta").where("teamId", "==", id).get();
+      fanta.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+    toast("🗑️ Squadra eliminata (con voti e punti fanta)");
+  } catch (e) { console.error(e); toast("❌ Errore"); }
+}
+
+async function adminDeleteMatch(id) {
+  if (!confirm("Eliminare questa partita?")) return;
+  try { await dbDelete("matches", id); toast("🗑️ Partita eliminata"); }
+  catch (e) { console.error(e); toast("❌ Errore"); }
+}
+
 // ---------- Render pannello ----------
 function renderAdmin() {
   if (!admin.logged) return;
   renderAdminTeams();
   renderAdminMatches();
+  renderAdminFanta();
+  renderAdminPhotos();
   fillMatchTeamSelects();
+  fillFantaTeamSelect();
   fillResultSelect();
 }
 
 function renderAdminTeams() {
   const el = document.getElementById("adminTeamsList");
   const icon = { calcetto: "⚽", volley: "🏐", entrambi: "⚽🏐" };
-  el.innerHTML = state.teams
+  el.innerHTML = [...state.teams]
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((t) => `
       <div class="admin-item">
         <span>${esc(t.emoji || "🏳️")}</span>
-        <span class="grow"><b>${esc(t.name)}</b> ${icon[t.tournament] || ""} · ${(t.players || []).length} giocatori</span>
+        <span class="grow"><b>${esc(t.name)}</b> ${icon[t.tournament] || ""} · ${normPlayers(t).length} giocatori</span>
         <button title="Elimina" onclick="adminDeleteTeam('${t.id}')">🗑️</button>
       </div>`).join("") || '<p class="muted">Nessuna squadra.</p>';
-}
-
-async function adminDeleteTeam(id) {
-  const t = teamById(id);
-  if (!confirm(`Eliminare la squadra "${t ? t.name : "?"}"?`)) return;
-  try { await dbDelete("teams", id); toast("🗑️ Squadra eliminata"); }
-  catch (e) { console.error(e); toast("❌ Errore"); }
 }
 
 function renderAdminMatches() {
@@ -199,10 +309,36 @@ function renderAdminMatches() {
     </div>`).join("") || '<p class="muted">Nessuna partita.</p>';
 }
 
-async function adminDeleteMatch(id) {
-  if (!confirm("Eliminare questa partita?")) return;
-  try { await dbDelete("matches", id); toast("🗑️ Partita eliminata"); }
-  catch (e) { console.error(e); toast("❌ Errore"); }
+function renderAdminFanta() {
+  const el = document.getElementById("adminFantaList");
+  const entries = [...state.fanta].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  el.innerHTML = entries.map((f) => `
+    <div class="admin-item">
+      <span class="fanta-pts ${f.points < 0 ? "neg" : ""}">${f.points > 0 ? "+" : ""}${f.points}</span>
+      <span class="grow"><b>${esc(teamName(f.teamId))}</b> · ${esc(f.reason)}</span>
+      <button title="Rimuovi" onclick="adminDeleteFanta('${f.id}')">🗑️</button>
+    </div>`).join("") || '<p class="muted">Nessun punto assegnato.</p>';
+}
+
+function renderAdminPhotos() {
+  if (!admin.logged) return;
+  const pend = document.getElementById("adminPhotosPending");
+  const appr = document.getElementById("adminPhotosApproved");
+  const item = (p, actions) => `
+    <div class="admin-item">
+      <img class="admin-thumb" src="${esc(thumbUrl(p))}" alt="">
+      <span class="grow">${esc(p.team || "?")} ${p.type === "video" ? "🎬" : "📷"}</span>
+      ${actions}
+    </div>`;
+  const pending = admin.photos.filter((p) => !p.approved);
+  const approved = admin.photos.filter((p) => p.approved);
+  pend.innerHTML = pending.map((p) => item(p,
+    `<button title="Approva" onclick="adminApprovePhoto('${p.id}')">✅</button>
+     <button title="Elimina" onclick="adminDeletePhoto('${p.id}')">🗑️</button>`)).join("")
+    || '<p class="muted">Nessun contenuto in attesa.</p>';
+  appr.innerHTML = approved.map((p) => item(p,
+    `<button title="Elimina" onclick="adminDeletePhoto('${p.id}')">🗑️</button>`)).join("")
+    || '<p class="muted">Nessun contenuto pubblicato.</p>';
 }
 
 function fillMatchTeamSelects() {
@@ -214,6 +350,15 @@ function fillMatchTeamSelects() {
     .join("");
   document.getElementById("mTeamA").innerHTML = '<option value="">Squadra 1…</option>' + opts;
   document.getElementById("mTeamB").innerHTML = '<option value="">Squadra 2…</option>' + opts;
+}
+
+function fillFantaTeamSelect() {
+  const sel = document.getElementById("fTeam");
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Squadra…</option>' + [...state.teams]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((t) => `<option value="${esc(t.id)}">${esc(t.emoji || "")} ${esc(t.name)}</option>`).join("");
+  if (prev && state.teams.some((t) => t.id === prev)) sel.value = prev;
 }
 
 function fillResultSelect() {
@@ -255,7 +400,7 @@ function fillScorerPlayers() {
   const t = teamById(side === "A" ? m.teamA : m.teamB);
   document.getElementById("rScorerPlayer").innerHTML =
     '<option value="">Marcatore…</option>' +
-    ((t && t.players) || []).map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
+    normPlayers(t).map((p) => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join("");
 }
 
 function renderScorerList() {

@@ -50,7 +50,7 @@
       </div>
       <div class="hero-cta">
         <a id="linkIscrizioni" href="#" target="_blank" rel="noopener" class="btn btn-primary">📝 Iscrizioni</a>
-        <a id="linkWhatsapp" href="#" target="_blank" rel="noopener" class="btn btn-secondary">📸 Invia foto/video</a>
+        <a href="#secGalleria" class="btn btn-secondary">📸 Carica foto/video</a>
       </div>
       <p class="hero-note">Le foto e i video inviati potranno essere pubblicati sulla pagina Instagram <a id="linkInstagramText" href="#" target="_blank" rel="noopener">@sagra_vezzano</a></p>
     </section>
@@ -91,13 +91,47 @@
       <div id="scorers"><p class="muted">Nessun gol registrato…</p></div>
     </section>
 
+    <!-- ===== FANTA SPLASH ===== -->
+    <section class="card" id="secFanta">
+      <h2>🌊 Classifica Fanta Splash</h2>
+      <p class="muted">Punti extra guadagnati dalle squadre (stories, premi bar, fair play…). <a href="#" class="open-regolamento">Come funziona?</a></p>
+      <div id="fantaRanking"><p class="muted">Nessun punto assegnato per ora…</p></div>
+      <div id="fantaLog"></div>
+    </section>
+
     <!-- ===== MVP ===== -->
     <section class="card" id="secMvp">
-      <h2>⭐ Vota il miglior giocatore</h2>
-      <p class="muted">Un voto per torneo per dispositivo. Vota chi ti ha fatto divertire di più!</p>
-      <div id="mvpArea"><p class="muted">Caricamento…</p></div>
-      <h3 style="margin-top:1.2rem">I più votati</h3>
-      <div id="mvpRanking"><p class="muted">Nessun voto per ora…</p></div>
+      <h2>⭐ Vota i migliori giocatori</h2>
+      <p class="muted">Un voto per il miglior giocatore e uno per la miglior giocatrice di ogni torneo. Puoi cambiare il tuo voto quando vuoi!</p>
+      <div class="mvp-cols">
+        <div>
+          <h3>🏅 Miglior giocatore</h3>
+          <div id="mvpAreaM"><p class="muted">Caricamento…</p></div>
+          <div id="mvpRankingM"></div>
+        </div>
+        <div>
+          <h3>🏅 Miglior giocatrice</h3>
+          <div id="mvpAreaF"><p class="muted">Caricamento…</p></div>
+          <div id="mvpRankingF"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== GALLERIA ===== -->
+    <section class="card" id="secGalleria">
+      <h2>📸 Galleria</h2>
+      <div id="uploadBox">
+        <p class="muted">Carica le tue foto e i tuoi video del torneo! Verranno pubblicati dopo l'approvazione dello staff.</p>
+        <div class="upload-row">
+          <input type="text" id="phTeam" placeholder="Nome squadra / autore">
+          <label class="btn btn-green upload-btn">📤 Scegli foto/video
+            <input type="file" id="phFile" accept="image/*,video/*" multiple hidden>
+          </label>
+        </div>
+        <div id="uploadStatus"></div>
+        <p class="muted" style="font-size:.85rem">In alternativa puoi inviarli via <a id="linkWhatsapp" href="#" target="_blank" rel="noopener">WhatsApp</a>.</p>
+      </div>
+      <div id="gallery" class="gallery"><p class="muted">Nessun contenuto per ora…</p></div>
     </section>
 
     <!-- ===== INFO ===== -->
@@ -193,6 +227,8 @@
           <button class="admin-tab active" data-atab="squadre">Squadre</button>
           <button class="admin-tab" data-atab="partite">Partite</button>
           <button class="admin-tab" data-atab="risultati">Risultati</button>
+          <button class="admin-tab" data-atab="fanta">Fanta</button>
+          <button class="admin-tab" data-atab="foto">Foto</button>
         </div>
 
         <!-- Squadre -->
@@ -205,7 +241,7 @@
             <option value="entrambi">⚽🏐 Entrambi</option>
           </select>
           <input type="text" id="tEmoji" placeholder="Emoji stemma (es. 🦈)" maxlength="4">
-          <textarea id="tPlayers" rows="4" placeholder="Giocatori, uno per riga"></textarea>
+          <textarea id="tPlayers" rows="4" placeholder="Giocatori, uno per riga.&#10;Aggiungi (F) dopo il nome per le giocatrici, es:&#10;Giulia T. (F)"></textarea>
           <button id="btnAddTeam" class="btn btn-primary">✅ Salva squadra</button>
           <h3>Squadre esistenti</h3>
           <div id="adminTeamsList"></div>
@@ -259,8 +295,45 @@
             <button id="btnSaveResult" class="btn btn-primary">💾 Salva risultato</button>
           </div>
         </div>
+
+        <!-- Fanta -->
+        <div class="admin-pane" id="apane-fanta" hidden>
+          <h3>➕ Assegna punti Fanta</h3>
+          <select id="fTeam"><option value="">Squadra…</option></select>
+          <select id="fReason">
+            <option value="">Motivo…</option>
+            <option>Partecipazione edizioni precedenti (+30)</option>
+            <option>Nuova squadra invitata (+50)</option>
+            <option>Iscrizione entro 7 luglio (+50)</option>
+            <option>Partecipa a entrambi i tornei (+50)</option>
+            <option>Story Instagram foto di squadra</option>
+            <option>Story Instagram azione di gioco</option>
+            <option>Premio bar</option>
+            <option>Fair play</option>
+            <option value="_altro">Altro…</option>
+          </select>
+          <input type="text" id="fReasonCustom" placeholder="Motivo personalizzato" hidden>
+          <input type="number" id="fPoints" placeholder="Punti (anche negativi)" style="width:100%">
+          <button id="btnAddFanta" class="btn btn-primary">✅ Assegna punti</button>
+          <h3>Punti assegnati</h3>
+          <div id="adminFantaList"></div>
+        </div>
+
+        <!-- Foto -->
+        <div class="admin-pane" id="apane-foto" hidden>
+          <h3>🕓 In attesa di approvazione</h3>
+          <div id="adminPhotosPending"></div>
+          <h3>✅ Pubblicate</h3>
+          <div id="adminPhotosApproved"></div>
+        </div>
       </div>
     </div>
+  </div>
+
+  <!-- ===== LIGHTBOX ===== -->
+  <div class="modal lightbox" id="modalLightbox" hidden>
+    <button class="modal-close" data-close>✕</button>
+    <div id="lightboxContent"></div>
   </div>
 
   <div id="toast" class="toast" hidden></div>

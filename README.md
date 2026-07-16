@@ -7,14 +7,16 @@ Sito statico (HTML/CSS/JS) + [Firebase](https://firebase.google.com) (piano grat
 ## Funzionalità
 
 - Due sezioni: ⚽ Calcetto Saponato e 🏐 Splash Volley (tab in alto)
-- Elenco squadre con giocatori
+- Elenco squadre con giocatori (giocatrici marcate con ♀)
 - Calendario partite e risultati in tempo reale
 - Classifica calcolata automaticamente (3/1/0 punti)
 - Classifica marcatori (solo calcetto)
-- Votazione MVP dal pubblico (1 voto per torneo per dispositivo)
+- Classifica Fanta Splash con punti assegnati dall'admin
+- Votazione miglior giocatore E miglior giocatrice per torneo (1 voto a testa per dispositivo, modificabile)
+- Galleria foto/video: upload dai giocatori (Cloudinary), pubblicazione dopo approvazione admin
 - Regolamento e Fanta Splash
-- Link Instagram, iscrizioni (Google Form) e invio foto/video via WhatsApp
-- Pannello admin (🔐 in alto a destra) per gestire squadre, partite, risultati e marcatori
+- Link Instagram, iscrizioni (Google Form) e invio via WhatsApp in alternativa
+- Pannello admin (🔐 in alto a destra): squadre, partite, risultati, marcatori, punti fanta, moderazione foto
 
 > **Modalità demo:** finché Firebase non è configurato, il sito mostra dati di esempio e il pannello admin funziona senza salvare nulla. Utile per provare tutto subito: apri `index.html` con un server locale (`python3 -m http.server`).
 
@@ -24,10 +26,22 @@ Sito statico (HTML/CSS/JS) + [Firebase](https://firebase.google.com) (piano grat
 2. **Firestore Database** → Crea database → modalità *production* → region `europe-west` qualsiasi.
 3. Tab **Regole** → incolla il contenuto di `firestore.rules` → **Pubblica**.
 4. **Authentication** → Inizia → attiva **Email/Password** → tab *Users* → **Aggiungi utente** (email + password: saranno le credenziali admin).
-5. **Impostazioni progetto** (⚙️) → *Le tue app* → icona **Web** `</>` → registra l'app → copia l'oggetto `firebaseConfig`.
-6. Incolla i valori in `js/firebase-config.js` al posto dei `REPLACE_ME`.
+5. **Authentication** → *Sign-in method* → attiva anche **Anonimo** (serve per voti MVP e upload foto: identifica i dispositivi senza registrazione).
+6. **Impostazioni progetto** (⚙️) → *Le tue app* → icona **Web** `</>` → registra l'app → copia l'oggetto `firebaseConfig`.
+7. Incolla i valori in `js/firebase-config.js` al posto dei `REPLACE_ME`.
 
 Fatto: il sito passa automaticamente dalla modalità demo ai dati reali.
+
+> ⚠️ Dopo ogni modifica a `firestore.rules` ricordati di ripubblicare le regole nella console Firebase (tab **Regole** → incolla → **Pubblica**).
+
+## Setup Cloudinary (upload foto/video, ~5 minuti)
+
+1. Crea un account gratuito su [cloudinary.com](https://cloudinary.com) (piano Free: 25GB banda/mese, più che sufficiente).
+2. Dalla **Dashboard** copia il **Cloud name**.
+3. **Settings → Upload → Upload presets → Add upload preset**: imposta *Signing mode* su **Unsigned** e (consigliato) *Folder* su `smdn-splash`. Salva e copia il nome del preset.
+4. Incolla Cloud name e preset in `js/config.js` (`cloudinaryCloudName`, `cloudinaryUploadPreset`).
+
+Finché non lo configuri, il box di upload resta nascosto e rimane il link WhatsApp. I contenuti caricati appaiono in galleria solo dopo l'approvazione dal pannello admin (tab **Foto**).
 
 ### Sicurezza
 
@@ -74,9 +88,11 @@ firestore.rules     regole di sicurezza Firestore
 ## Uso durante il torneo (admin)
 
 1. Clicca 🔐 in alto a destra → login con email/password Firebase.
-2. **Squadre:** aggiungi nome, torneo, emoji e giocatori (uno per riga).
+2. **Squadre:** aggiungi nome, torneo, emoji e giocatori (uno per riga; aggiungi `(F)` dopo il nome delle giocatrici, es. `Giulia T. (F)` — serve per il voto "miglior giocatrice"). Eliminando una squadra vengono rimossi anche i voti MVP dei suoi giocatori e i suoi punti fanta.
 3. **Partite:** scegli torneo, squadre, giorno e ora.
 4. **Risultati:** seleziona la partita, inserisci punteggio, spunta "Partita conclusa"; per il calcetto aggiungi i marcatori. Classifiche e marcatori si aggiornano da soli su tutti i dispositivi.
+5. **Fanta:** seleziona squadra e motivo (i punti si precompilano per i bonus standard) o inserisci motivo e punti liberi, anche negativi. La classifica fanta sul sito si aggiorna subito.
+6. **Foto:** approva ✅ o elimina 🗑️ i contenuti caricati dai giocatori; solo quelli approvati appaiono in galleria.
 
 
 Migliorare invio foto. Caricamento immagini con salvataggio da qualche parte + consultazione sul sito.
