@@ -22,6 +22,7 @@ let auth = null;
   setupStaticLinks();
   setupTabs();
   setupModals();
+  setupMobileMenu();
   setupUpload();
   spawnBubbles();
 
@@ -94,6 +95,21 @@ function setupTabs() {
       renderAll();
     });
   });
+}
+
+// ---------- Menu mobile (hamburger) ----------
+function setupMobileMenu() {
+  const btn = document.getElementById("btnMenu");
+  const nav = document.getElementById("topnav");
+  if (!btn || !nav) return;
+  const setOpen = (open) => {
+    nav.classList.toggle("open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Chiudi menu" : "Apri menu");
+  };
+  btn.addEventListener("click", (e) => { e.stopPropagation(); setOpen(!nav.classList.contains("open")); });
+  nav.addEventListener("click", (e) => { if (e.target.tagName === "A") setOpen(false); });
+  document.addEventListener("click", (e) => { if (!nav.contains(e.target) && e.target !== btn) setOpen(false); });
 }
 
 // ---------- Modali ----------
@@ -201,6 +217,7 @@ function toastUndo(msg, undoFn, ms = 6000) {
   btn.textContent = "↩︎ Annulla";
   el.append(span, btn);
   el.hidden = false;
+  el.onclick = null; // qui comanda solo il bottone Annulla
   clearTimeout(el._t);
   btn.onclick = () => { clearTimeout(el._t); el.hidden = true; el.textContent = ""; undoFn(); };
   el._t = setTimeout(() => { el.hidden = true; el.textContent = ""; }, ms);
@@ -222,8 +239,19 @@ function toast(msg) {
   const el = document.getElementById("toast");
   el.textContent = msg;
   el.hidden = false;
+  el.onclick = () => { clearTimeout(el._t); el.hidden = true; el.textContent = ""; }; // click per chiudere
   clearTimeout(el._t);
   el._t = setTimeout(() => (el.hidden = true), 3000);
+}
+
+// Tempo relativo compatto: "ora", "5 min fa", "2 h fa", "3 g fa"
+function timeAgo(ts) {
+  if (!ts) return "";
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return "ora";
+  const m = Math.floor(s / 60); if (m < 60) return `${m} min fa`;
+  const h = Math.floor(m / 60); if (h < 24) return `${h} h fa`;
+  const d = Math.floor(h / 24); return `${d} g fa`;
 }
 
 // ---------- Render ----------

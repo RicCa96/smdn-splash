@@ -18,7 +18,7 @@
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="#top"><img src="assets/logo_smdn.svg" alt="Logo Sagra Madonna della Neve" class="brand-logo"> <span>Splash <b>SMDN</b></span></a>
-      <nav class="topnav">
+      <nav class="topnav" id="topnav">
         <a href="#secSquadre">Squadre</a>
         <a href="#secCalendario">Calendario</a>
         <a href="#secClassifica">Classifica</a>
@@ -26,6 +26,7 @@
         <a href="#" id="btnRegolamento">Regolamento</a>
       </nav>
       <div class="topbar-actions">
+        <button id="btnMenu" class="btn-ghost menu-toggle" aria-label="Apri menu" aria-expanded="false" aria-controls="topnav">☰</button>
         <a id="linkInstagram" href="#" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
         </a>
@@ -214,7 +215,10 @@
         </div>
         <div class="field">
           <label for="adminPass">Password</label>
-          <input type="password" id="adminPass" placeholder="La tua password" autocomplete="current-password">
+          <div class="pw-wrap">
+            <input type="password" id="adminPass" placeholder="La tua password" autocomplete="current-password">
+            <button type="button" id="btnPwToggle" class="pw-toggle" aria-label="Mostra password" aria-pressed="false">👁</button>
+          </div>
         </div>
         <p id="adminLoginError" class="error" hidden>❌ Credenziali errate</p>
         <button id="btnLogin" class="btn btn-primary">🔓 Accedi</button>
@@ -234,20 +238,21 @@
 
     <div class="aapp-body">
       <nav class="aapp-nav" role="tablist" aria-label="Sezioni admin">
-        <button class="aapp-navitem active" data-atab="squadre" role="tab" aria-selected="true">🏆 <span>Squadre</span></button>
-        <button class="aapp-navitem" data-atab="partite" role="tab" aria-selected="false">📅 <span>Partite</span></button>
-        <button class="aapp-navitem" data-atab="risultati" role="tab" aria-selected="false">🎯 <span>Risultati</span></button>
-        <button class="aapp-navitem" data-atab="fanta" role="tab" aria-selected="false">🌊 <span>Fanta</span></button>
-        <button class="aapp-navitem" data-atab="foto" role="tab" aria-selected="false">📸 <span>Foto</span></button>
+        <button class="aapp-navitem active" id="atab-squadre" data-atab="squadre" role="tab" aria-selected="true" aria-controls="apane-squadre">🏆 <span>Squadre</span></button>
+        <button class="aapp-navitem" id="atab-partite" data-atab="partite" role="tab" aria-selected="false" aria-controls="apane-partite" tabindex="-1">📅 <span>Partite</span></button>
+        <button class="aapp-navitem" id="atab-risultati" data-atab="risultati" role="tab" aria-selected="false" aria-controls="apane-risultati" tabindex="-1">🎯 <span>Risultati</span></button>
+        <button class="aapp-navitem" id="atab-fanta" data-atab="fanta" role="tab" aria-selected="false" aria-controls="apane-fanta" tabindex="-1">🌊 <span>Fanta</span></button>
+        <button class="aapp-navitem" id="atab-foto" data-atab="foto" role="tab" aria-selected="false" aria-controls="apane-foto" tabindex="-1">📸 <span>Foto</span></button>
       </nav>
 
       <main class="aapp-main">
 
         <!-- Squadre -->
-        <section class="aapp-pane" id="apane-squadre">
+        <section class="aapp-pane" id="apane-squadre" role="tabpanel" aria-labelledby="atab-squadre" tabindex="0">
           <div class="pane-grid">
             <div class="pane-col card">
               <h3 id="teamFormTitle">➕ Nuova squadra</h3>
+              <p class="pane-hint muted">Le squadre alimentano calendario, classifica e voti MVP. Inizia da qui.</p>
               <div class="field">
                 <label for="tName">Nome squadra</label>
                 <input type="text" id="tName" placeholder="es. Gli Squali">
@@ -276,16 +281,18 @@
             </div>
             <div class="pane-col card">
               <h3>Squadre esistenti</h3>
+              <input type="search" id="teamFilter" class="list-filter" placeholder="🔍 Cerca squadra…" aria-label="Cerca squadra">
               <div id="adminTeamsList"></div>
             </div>
           </div>
         </section>
 
         <!-- Partite -->
-        <section class="aapp-pane" id="apane-partite" hidden>
+        <section class="aapp-pane" id="apane-partite" role="tabpanel" aria-labelledby="atab-partite" tabindex="0" hidden>
           <div class="pane-grid">
             <div class="pane-col card">
               <h3 id="matchFormTitle">➕ Nuova partita</h3>
+              <p class="pane-hint muted">Servono almeno due squadre nel torneo scelto. I risultati si inseriscono nella sezione Risultati.</p>
               <div class="field">
                 <label for="mTourney">Torneo</label>
                 <select id="mTourney">
@@ -327,13 +334,14 @@
             </div>
             <div class="pane-col card">
               <h3>Partite inserite</h3>
+              <input type="search" id="matchFilter" class="list-filter" placeholder="🔍 Cerca partita (squadra, giorno, fase)…" aria-label="Cerca partita">
               <div id="adminMatchesList"></div>
             </div>
           </div>
         </section>
 
         <!-- Risultati -->
-        <section class="aapp-pane" id="apane-risultati" hidden>
+        <section class="aapp-pane" id="apane-risultati" role="tabpanel" aria-labelledby="atab-risultati" tabindex="0" hidden>
           <div class="pane-grid">
             <div class="pane-col card">
               <h3>🎯 Partite</h3>
@@ -374,10 +382,11 @@
         </section>
 
         <!-- Fanta -->
-        <section class="aapp-pane" id="apane-fanta" hidden>
+        <section class="aapp-pane" id="apane-fanta" role="tabpanel" aria-labelledby="atab-fanta" tabindex="0" hidden>
           <div class="pane-grid">
             <div class="pane-col card">
               <h3 id="fantaFormTitle">➕ Assegna punti Fanta</h3>
+              <p class="pane-hint muted">Bonus e malus per squadra: i totali aggiornano la classifica Fanta pubblica.</p>
               <div class="field">
                 <label for="fTeam">Squadra</label>
                 <select id="fTeam"><option value="">Squadra…</option></select>
@@ -412,13 +421,14 @@
             </div>
             <div class="pane-col card">
               <h3>Punti assegnati</h3>
+              <input type="search" id="fantaFilter" class="list-filter" placeholder="🔍 Cerca (squadra o motivo)…" aria-label="Cerca voce fanta">
               <div id="adminFantaList"></div>
             </div>
           </div>
         </section>
 
         <!-- Foto -->
-        <section class="aapp-pane" id="apane-foto" hidden>
+        <section class="aapp-pane" id="apane-foto" role="tabpanel" aria-labelledby="atab-foto" tabindex="0" hidden>
           <div class="pane-col card">
             <div class="photos-head">
               <h3>🕓 In attesa di approvazione</h3>

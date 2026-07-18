@@ -11,6 +11,9 @@ const admin = {
   editFantaId: null, // id voce fanta in modifica
   flashId: null,     // id riga da evidenziare dopo il salvataggio
   resultFilter: "pending", // filtro lista risultati: "pending" | "all"
+  teamQuery: "",     // testo di ricerca liste admin
+  matchQuery: "",
+  fantaQuery: "",
 };
 
 // Evidenzia (e scorre verso) la riga appena aggiunta/modificata
@@ -68,6 +71,18 @@ document.getElementById("btnLogin").addEventListener("click", (e) => {
   });
 });
 
+// Mostra/nascondi password (P2.4)
+document.getElementById("btnPwToggle").addEventListener("click", () => {
+  const inp = document.getElementById("adminPass");
+  const btn = document.getElementById("btnPwToggle");
+  const show = inp.type === "password";
+  inp.type = show ? "text" : "password";
+  btn.textContent = show ? "🙈" : "👁";
+  btn.setAttribute("aria-label", show ? "Nascondi password" : "Mostra password");
+  btn.setAttribute("aria-pressed", show ? "true" : "false");
+  inp.focus();
+});
+
 document.getElementById("btnLogout").addEventListener("click", async () => {
   admin.logged = false;
   if (admin.photosUnsub) { admin.photosUnsub(); admin.photosUnsub = null; }
@@ -115,17 +130,30 @@ function subscribeAdminPhotos() {
   });
 }
 
-// ---------- Navigazione sezioni ----------
-document.querySelectorAll(".aapp-navitem").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".aapp-navitem").forEach((b) => {
-      b.classList.remove("active");
-      b.setAttribute("aria-selected", "false");
-    });
-    btn.classList.add("active");
-    btn.setAttribute("aria-selected", "true");
-    document.querySelectorAll(".aapp-pane").forEach((p) => (p.hidden = true));
-    document.getElementById("apane-" + btn.dataset.atab).hidden = false;
+// ---------- Navigazione sezioni (tab accessibili) ----------
+const navItems = [...document.querySelectorAll(".aapp-navitem")];
+function activateTab(btn, focus) {
+  navItems.forEach((b) => {
+    const on = b === btn;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+    b.tabIndex = on ? 0 : -1;
+  });
+  document.querySelectorAll(".aapp-pane").forEach((p) => (p.hidden = true));
+  document.getElementById("apane-" + btn.dataset.atab).hidden = false;
+  if (focus) btn.focus();
+}
+navItems.forEach((btn, i) => {
+  btn.addEventListener("click", () => activateTab(btn));
+  btn.addEventListener("keydown", (e) => {
+    let idx = null;
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") idx = (i + 1) % navItems.length;
+    else if (e.key === "ArrowUp" || e.key === "ArrowLeft") idx = (i - 1 + navItems.length) % navItems.length;
+    else if (e.key === "Home") idx = 0;
+    else if (e.key === "End") idx = navItems.length - 1;
+    if (idx === null) return;
+    e.preventDefault();
+    activateTab(navItems[idx], true);
   });
 });
 
@@ -574,6 +602,15 @@ async function adminDeleteMatch(id) {
 }
 
 // ---------- Render pannello ----------
+// ---------- Filtri di ricerca liste (P2.1) ----------
+function wireListFilter(inputId, key, renderFn) {
+  const inp = document.getElementById(inputId);
+  if (inp) inp.addEventListener("input", () => { admin[key] = inp.value; renderFn(); });
+}
+wireListFilter("teamFilter", "teamQuery", renderAdminTeams);
+wireListFilter("matchFilter", "matchQuery", renderAdminMatches);
+wireListFilter("fantaFilter", "fantaQuery", renderAdminFanta);
+
 function renderAdmin() {
   if (!admin.logged) return;
   renderAdminTeams();
@@ -588,42 +625,75 @@ function renderAdmin() {
 function renderAdminTeams() {
   const el = document.getElementById("adminTeamsList");
   const icon = { calcetto: "⚽", volley: "🏐", entrambi: "⚽🏐" };
-  el.innerHTML = [...state.teams]
+  const q = admin.teamQuery.trim().toLowerCase();
+  const teams = [...state.teams]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((t) => `
+    .filter((t) => !q || t.name.toLowerCase().includes(q));
+
+  const teamRow = (t) => `
       <div class="admin-item" data-id="${esc(t.id)}">
         <span>${esc(t.emoji || "🏳️")}</span>
         <span class="grow"><b>${esc(t.name)}</b> ${icon[t.tournament] || ""} · ${normPlayers(t).length} giocatori</span>
         <button title="Modifica" aria-label="Modifica ${esc(t.name)}" onclick="startEditTeam('${t.id}')">✏️</button>
         <button title="Elimina" aria-label="Elimina ${esc(t.name)}" onclick="adminDeleteTeam('${t.id}')">🗑️</button>
-      </div>`).join("") || '<p class="muted">Nessuna squadra. Crea la prima qui a fianco.</p>';
+      </div>`;
+
+  const inTourney = (t, k) => t.tournament === k || t.tournament === "entrambi";
+
+  const panel = (label, k) => {
+    const rows = teams.filter((t) => inTourney(t, k));
+    return `
+    <div class="result-daygroup">
+      <h4>${icon[k]} ${label} <span class="muted">(${rows.length})</span></h4>
+      ${rows.map(teamRow).join("") || `<p class="muted">${q ? "Nessuna squadra trovata." : "Nessuna squadra."}</p>`}
+    </div>`;
+  };
+
+  el.innerHTML = teams.length
+    ? panel("Calcetto", "calcetto") + panel("Volley", "volley")
+    : `<p class="muted">${q ? "Nessuna squadra trovata." : "Nessuna squadra. Crea la prima qui a fianco."}</p>`;
   applyFlash("adminTeamsList");
 }
 
 function renderAdminMatches() {
   const el = document.getElementById("adminMatchesList");
-  const ms = [...state.matches].sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
-  el.innerHTML = ms.map((m) => `
-    <div class="admin-item" data-id="${esc(m.id)}">
-      <span>${m.tournament === "calcetto" ? "⚽" : "🏐"}</span>
-      <span class="grow">${esc(m.day)} ${esc(m.time)} · ${esc(teamName(m.teamA))} vs ${esc(teamName(m.teamB))}
-        ${m.played ? `<b>(${m.scoreA}–${m.scoreB})</b>` : ""}</span>
-      <button title="Modifica" aria-label="Modifica partita" onclick="startEditMatch('${m.id}')">✏️</button>
-      <button title="Elimina" aria-label="Elimina partita" onclick="adminDeleteMatch('${m.id}')">🗑️</button>
-    </div>`).join("") || '<p class="muted">Nessuna partita. Aggiungine una qui a fianco.</p>';
+  const q = admin.matchQuery.trim().toLowerCase();
+  let ms = [...state.matches].sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
+  if (q) ms = ms.filter((m) =>
+    `${m.day} ${m.time} ${teamName(m.teamA)} ${teamName(m.teamB)} ${m.label || ""}`.toLowerCase().includes(q));
+  if (!ms.length) {
+    el.innerHTML = `<p class="muted">${q ? "Nessuna partita trovata." : "Nessuna partita. Aggiungine una qui a fianco."}</p>`;
+    return;
+  }
+  const byDay = {};
+  ms.forEach((m) => (byDay[m.day] = byDay[m.day] || []).push(m));
+  el.innerHTML = Object.keys(byDay).sort().map((day) => `
+    <div class="result-daygroup">
+      <h4>📆 ${esc(day)}</h4>
+      ${byDay[day].map((m) => `
+        <div class="admin-item" data-id="${esc(m.id)}">
+          <span>${m.tournament === "calcetto" ? "⚽" : "🏐"}</span>
+          <span class="grow">${esc(m.time)} · ${esc(teamName(m.teamA))} vs ${esc(teamName(m.teamB))}${m.played ? ` <b>(${m.scoreA}–${m.scoreB})</b>` : ""}${m.label ? ` <span class="muted">· ${esc(m.label)}</span>` : ""}</span>
+          <button title="Modifica" aria-label="Modifica partita" onclick="startEditMatch('${m.id}')">✏️</button>
+          <button title="Elimina" aria-label="Elimina partita" onclick="adminDeleteMatch('${m.id}')">🗑️</button>
+        </div>`).join("")}
+    </div>`).join("");
   applyFlash("adminMatchesList");
 }
 
 function renderAdminFanta() {
   const el = document.getElementById("adminFantaList");
-  const entries = [...state.fanta].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const q = admin.fantaQuery.trim().toLowerCase();
+  let entries = [...state.fanta].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  if (q) entries = entries.filter((f) => `${teamName(f.teamId)} ${f.reason}`.toLowerCase().includes(q));
   el.innerHTML = entries.map((f) => `
     <div class="admin-item" data-id="${esc(f.id)}">
       <span class="fanta-pts ${f.points < 0 ? "neg" : ""}">${f.points > 0 ? "+" : ""}${f.points}</span>
-      <span class="grow"><b>${esc(teamName(f.teamId))}</b> · ${esc(f.reason)}</span>
+      <span class="grow"><b>${esc(teamName(f.teamId))}</b> · ${esc(f.reason)}${f.ts ? ` <span class="muted">· ${esc(timeAgo(f.ts))}</span>` : ""}</span>
       <button title="Modifica" aria-label="Modifica voce fanta" onclick="startEditFanta('${f.id}')">✏️</button>
       <button title="Rimuovi" aria-label="Rimuovi voce fanta" onclick="adminDeleteFanta('${f.id}')">🗑️</button>
-    </div>`).join("") || '<p class="muted">Nessun punto assegnato.</p>';
+    </div>`).join("")
+    || `<p class="muted">${q ? "Nessuna voce trovata." : "Nessun punto assegnato."}</p>`;
   applyFlash("adminFantaList");
 }
 
@@ -638,7 +708,7 @@ function renderAdminPhotos() {
         ${p.type === "video" ? '<span class="play-badge">▶</span>' : ""}
       </div>
       <div class="ap-meta">
-        <span class="grow">${esc(p.team || "?")} ${p.type === "video" ? "🎬" : "📷"}</span>
+        <span class="grow">${esc(p.team || "?")} ${p.type === "video" ? "🎬" : "📷"}${p.ts ? ` <span class="muted">· ${esc(timeAgo(p.ts))}</span>` : ""}</span>
         <span class="ap-actions">${actions}</span>
       </div>
     </div>`;
