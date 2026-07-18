@@ -164,7 +164,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 0 1.1rem 2rem; }
 
 /* ===== Teams ===== */
 .teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
-.team-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.1rem; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
+.team-card { background: var(--card); border: 2px solid var(--border); border-radius: var(--radius-sm); padding: 1.1rem; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
 .team-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-sm); }
 .team-card h3 { margin: 0 0 .6rem; display: flex; align-items: center; gap: .5rem; font-size: 1.08rem; }
 .team-dot { display: inline-block; width: .7em; height: .7em; border-radius: 50%; margin-right: .35em; flex: 0 0 auto; vertical-align: baseline; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }

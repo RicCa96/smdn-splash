@@ -51,12 +51,6 @@ document.getElementById("btnLogin").addEventListener("click", (e) => {
   const errEl = document.getElementById("adminLoginError");
   errEl.hidden = true;
 
-  if (state.demo) {
-    admin.logged = true;
-    showAdminPanel();
-    toast("⚠️ Modalità demo: le modifiche non vengono salvate");
-    return;
-  }
   withBusy(btn, "⏳ Accesso…", async () => {
     try {
       await auth.signInWithEmailAndPassword(email, pass);
@@ -88,7 +82,7 @@ document.getElementById("btnLogout").addEventListener("click", async () => {
   if (admin.photosUnsub) { admin.photosUnsub(); admin.photosUnsub = null; }
   hideAdminApp();
   document.getElementById("modalAdmin").hidden = true;
-  if (!state.demo && auth) await auth.signOut(); // onAuthStateChanged farà login anonimo
+  if (auth) await auth.signOut(); // onAuthStateChanged farà login anonimo
 });
 
 // "Vedi sito": nasconde il pannello ma resta loggati (rientri col 🔐)
@@ -112,17 +106,13 @@ function hideAdminApp() {
 }
 
 // Se già autenticato come admin (refresh pagina)
-if (!state.demo && auth) {
+if (auth) {
   auth.onAuthStateChanged((u) => {
     if (u && !u.isAnonymous) { admin.logged = true; showAdminPanel(); }
   });
 }
 
 function subscribeAdminPhotos() {
-  if (state.demo) {
-    admin.photos = state.photos;
-    return;
-  }
   if (admin.photosUnsub) return;
   admin.photosUnsub = db.collection("photos").onSnapshot((snap) => {
     admin.photos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -159,30 +149,13 @@ navItems.forEach((btn, i) => {
 
 // ---------- Persistenza ----------
 async function dbAdd(coll, data) {
-  if (state.demo) {
-    data.id = "demo_" + Math.random().toString(36).slice(2, 8);
-    state[coll].push(data);
-    renderAll();
-    return data.id;
-  }
   const ref = await db.collection(coll).add(data);
   return ref.id;
 }
 async function dbUpdate(coll, id, data) {
-  if (state.demo) {
-    const item = state[coll].find((x) => x.id === id);
-    if (item) Object.assign(item, data);
-    renderAll();
-    return;
-  }
   await db.collection(coll).doc(id).update(data);
 }
 async function dbDelete(coll, id) {
-  if (state.demo) {
-    state[coll] = state[coll].filter((x) => x.id !== id);
-    renderAll();
-    return;
-  }
   await db.collection(coll).doc(id).delete();
 }
 
@@ -497,12 +470,6 @@ async function adminApprovePhoto(id) {
   catch (e) { console.error(e); toast("❌ Errore"); }
 }
 async function adminUpdatePhoto(id, data) {
-  if (state.demo) {
-    const p = admin.photos.find((x) => x.id === id);
-    if (p) Object.assign(p, data);
-    renderAdminPhotos(); renderGallery();
-    return;
-  }
   await db.collection("photos").doc(id).update(data);
 }
 async function adminDeletePhoto(id) {
@@ -515,24 +482,11 @@ async function adminDeletePhoto(id) {
   if (!okc) return;
   const backup = p ? { ...p } : null;
   const doDelete = async () => {
-    if (state.demo) {
-      admin.photos = admin.photos.filter((x) => x.id !== id);
-      state.photos = state.photos.filter((x) => x.id !== id);
-      renderAdminPhotos(); renderGallery();
-    } else {
-      await db.collection("photos").doc(id).delete();
-    }
+    await db.collection("photos").doc(id).delete();
   };
   const doRestore = async () => {
     const { id: _drop, ...data } = backup;
-    if (state.demo) {
-      data.id = "demo_" + Math.random().toString(36).slice(2, 8);
-      admin.photos.push(data);
-      if (data.approved) state.photos.push(data);
-      renderAdminPhotos(); renderGallery();
-    } else {
-      await db.collection("photos").add(data);
-    }
+    await db.collection("photos").add(data);
   };
   try {
     await doDelete();
@@ -561,20 +515,13 @@ async function adminDeleteTeam(id) {
   });
   if (!okc) return;
   try {
-    if (state.demo) {
-      state.teams = state.teams.filter((x) => x.id !== id);
-      state.votes = state.votes.filter((v) => v.teamId !== id);
-      state.fanta = state.fanta.filter((f) => f.teamId !== id);
-      renderAll();
-    } else {
-      const batch = db.batch();
-      batch.delete(db.collection("teams").doc(id));
-      const votes = await db.collection("votes").where("teamId", "==", id).get();
-      votes.forEach((d) => batch.delete(d.ref));
-      const fanta = await db.collection("fanta").where("teamId", "==", id).get();
-      fanta.forEach((d) => batch.delete(d.ref));
-      await batch.commit();
-    }
+    const batch = db.batch();
+    batch.delete(db.collection("teams").doc(id));
+    const votes = await db.collection("votes").where("teamId", "==", id).get();
+    votes.forEach((d) => batch.delete(d.ref));
+    const fanta = await db.collection("fanta").where("teamId", "==", id).get();
+    fanta.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
     toast("🗑️ Squadra eliminata (con voti e punti fanta)");
   } catch (e) { console.error(e); toast("❌ Errore"); }
 }

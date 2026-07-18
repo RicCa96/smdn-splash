@@ -18,7 +18,7 @@ Sito statico (HTML/CSS/JS) + [Firebase](https://firebase.google.com) (piano grat
 - Link Instagram, iscrizioni (Google Form) e invio via WhatsApp in alternativa
 - Pannello admin (🔐 in alto a destra): squadre, partite, risultati, marcatori, punti fanta, moderazione foto
 
-> **Modalità demo:** finché Firebase non è configurato, il sito mostra dati di esempio e il pannello admin funziona senza salvare nulla. Utile per provare tutto subito: apri `index.html` con un server locale (`python3 -m http.server`).
+> **Requisito:** il sito legge e scrive sempre su Firebase/Firestore. Configura `js/firebase-config.js` (vedi sotto) prima di aprirlo. Per lo sviluppo locale usa un server statico: `python3 -m http.server`.
 
 ## Setup Firebase (una tantum, ~10 minuti)
 
@@ -30,7 +30,7 @@ Sito statico (HTML/CSS/JS) + [Firebase](https://firebase.google.com) (piano grat
 6. **Impostazioni progetto** (⚙️) → *Le tue app* → icona **Web** `</>` → registra l'app → copia l'oggetto `firebaseConfig`.
 7. Incolla i valori in `js/firebase-config.js` al posto dei `REPLACE_ME`.
 
-Fatto: il sito passa automaticamente dalla modalità demo ai dati reali.
+Fatto: il sito legge e scrive i dati reali su Firestore.
 
 > ⚠️ Dopo ogni modifica a `firestore.rules` ricordati di ripubblicare le regole nella console Firebase (tab **Regole** → incolla → **Pubblica**).
 
@@ -81,7 +81,7 @@ js/config.js        link e impostazioni evento
 js/firebase-config.js  credenziali Firebase (da compilare)
 js/app.js           logica pubblica (render, voti MVP)
 js/admin.js         pannello admin
-js/sample-data.js   dati demo
+js/team-display.js  colore/pallino squadra (con test)
 firestore.rules     regole di sicurezza Firestore
 ```
 

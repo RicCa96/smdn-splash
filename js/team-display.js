@@ -16,6 +16,13 @@ function teamDot(team) {
   return `<span class="team-dot" style="background:${teamColor(team)}"></span>`;
 }
 
+// Stile inline per il pannello squadra: bordo pieno del colore squadra e
+// sfondo dello stesso colore ma semitrasparente (~13%, alpha "22").
+function teamCardStyle(team) {
+  const c = teamColor(team);
+  return `border-color:${c};background:${c}22`;
+}
+
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { DEFAULT_TEAM_COLOR, teamColor, teamDot };
+  module.exports = { DEFAULT_TEAM_COLOR, teamColor, teamDot, teamCardStyle };
 }

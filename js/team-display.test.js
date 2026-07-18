@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { DEFAULT_TEAM_COLOR, teamColor, teamDot } = require("./team-display.js");
+const { DEFAULT_TEAM_COLOR, teamColor, teamDot, teamCardStyle } = require("./team-display.js");
 
 test("teamColor returns the team's color when it is a valid hex", () => {
   assert.equal(teamColor({ color: "#3366cc" }), "#3366cc");
@@ -33,4 +33,17 @@ test("teamDot uses the default color for a missing color, never raw input", () =
   const html = teamDot({ color: "javascript:evil" });
   assert.equal(html, `<span class="team-dot" style="background:${DEFAULT_TEAM_COLOR}"></span>`);
   assert.ok(!html.includes("evil"));
+});
+
+test("teamCardStyle builds a colored border and semitransparent background", () => {
+  assert.equal(
+    teamCardStyle({ color: "#3366cc" }),
+    "border-color:#3366cc;background:#3366cc22"
+  );
+});
+
+test("teamCardStyle falls back to default color when invalid, never raw input", () => {
+  const style = teamCardStyle({ color: '#000;"><script>evil' });
+  assert.equal(style, `border-color:${DEFAULT_TEAM_COLOR};background:${DEFAULT_TEAM_COLOR}22`);
+  assert.ok(!style.includes("evil"));
 });

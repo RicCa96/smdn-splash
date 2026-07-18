@@ -8,7 +8,6 @@ const state = {
   fanta: [],    // punti fanta
   photos: [],   // foto/video approvati
   tourney: "calcetto",
-  demo: false,
   uid: null,    // uid Firebase (anonimo o admin)
 };
 
@@ -17,8 +16,6 @@ let auth = null;
 
 // ---------- Inizializzazione ----------
 (function init() {
-  state.demo = !FIREBASE_CONFIG || FIREBASE_CONFIG.projectId === "REPLACE_ME";
-
   setupStaticLinks();
   setupTabs();
   setupModals();
@@ -26,29 +23,18 @@ let auth = null;
   setupUpload();
   spawnBubbles();
 
-  if (state.demo) {
-    console.warn("MODALITÀ DEMO: Firebase non configurato, uso dati di esempio (vedi README.md)");
-    state.uid = "demo";
-    state.teams = [...SAMPLE_DATA.teams];
-    state.matches = [...SAMPLE_DATA.matches];
-    state.votes = [...SAMPLE_DATA.votes];
-    state.fanta = [...SAMPLE_DATA.fanta];
-    state.photos = [...SAMPLE_DATA.photos];
-    renderAll();
-  } else {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.firestore();
-    auth = firebase.auth();
-    auth.onAuthStateChanged((u) => {
-      if (u) {
-        state.uid = u.uid;
-        renderMvp();
-      } else {
-        auth.signInAnonymously().catch((e) => console.error("Auth anonima fallita:", e));
-      }
-    });
-    subscribeData();
-  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+  auth = firebase.auth();
+  auth.onAuthStateChanged((u) => {
+    if (u) {
+      state.uid = u.uid;
+      renderMvp();
+    } else {
+      auth.signInAnonymously().catch((e) => console.error("Auth anonima fallita:", e));
+    }
+  });
+  subscribeData();
 })();
 
 function subscribeData() {
@@ -300,7 +286,7 @@ function renderTeams() {
     return;
   }
   el.innerHTML = teams.map((t) => `
-    <div class="team-card">
+    <div class="team-card" style="${teamCardStyle(t)}">
       <h3>${teamDot(t)}${esc(t.name)}
         ${t.tournament === "entrambi" ? '<span class="team-badge">⚽+🏐</span>' : ""}</h3>
       <ul>${normPlayers(t).map((p) => `<li>${esc(p.name)}${p.gender === "f" ? " <span class='f-mark'>♀</span>" : ""}</li>`).join("")}</ul>
@@ -402,18 +388,28 @@ function renderFanta() {
   }
   const totals = {};
   state.fanta.forEach((f) => {
+    const team = teamById(f.teamId);
+    if (!team || !inTourney(team)) return;
     totals[f.teamId] = (totals[f.teamId] || 0) + (Number(f.points) || 0);
   });
   const rows = Object.entries(totals)
     .map(([teamId, pts]) => ({ teamId, pts }))
     .sort((a, b) => b.pts - a.pts);
+  if (!rows.length) {
+    rankEl.innerHTML = '<p class="muted">Nessun punto assegnato per ora…</p>';
+    logEl.innerHTML = "";
+    return;
+  }
   rankEl.innerHTML = `
     <table class="rank">
       <tr><th>#</th><th>Squadra</th><th>Punti Fanta</th></tr>
       ${rows.map((r, i) => `
         <tr><td>${i + 1}</td><td>${teamDotById(r.teamId)}${esc(teamName(r.teamId))}</td><td><b>${r.pts}</b></td></tr>`).join("")}
     </table>`;
-  const last = [...state.fanta].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 6);
+  const last = [...state.fanta]
+    .filter((f) => { const t = teamById(f.teamId); return t && inTourney(t); })
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+    .slice(0, 6);
   logEl.innerHTML = `<h3>Ultimi punti assegnati</h3>` + last.map((f) => `
     <div class="fanta-entry">
       <span class="fanta-pts ${f.points < 0 ? "neg" : ""}">${f.points > 0 ? "+" : ""}${f.points}</span>
@@ -494,17 +490,12 @@ async function submitVote(cat, teamId, player, area) {
     uid: state.uid,
     ts: Date.now(),
   };
-  if (state.demo) {
-    state.votes = state.votes.filter((v) => v.id !== voteDocId(cat));
-    state.votes.push({ id: voteDocId(cat), ...vote });
-  } else {
-    try {
-      await db.collection("votes").doc(voteDocId(cat)).set(vote);
-    } catch (e) {
-      console.error(e);
-      toast("❌ Errore nell'invio del voto, riprova");
-      return;
-    }
+  try {
+    await db.collection("votes").doc(voteDocId(cat)).set(vote);
+  } catch (e) {
+    console.error(e);
+    toast("❌ Errore nell'invio del voto, riprova");
+    return;
   }
   delete area.dataset.editing;
   toast("⭐ Grazie per il tuo voto!");
@@ -540,7 +531,7 @@ function cloudinaryReady() {
 
 function setupUpload() {
   const input = document.getElementById("phFile");
-  if (!cloudinaryReady() && !state.demo) {
+  if (!cloudinaryReady()) {
     document.querySelector(".upload-row").hidden = true;
     return;
   }
@@ -568,24 +559,16 @@ async function uploadFile(file, team) {
 
   try {
     let url, type = isVideo ? "video" : "image";
-    if (state.demo) {
-      url = URL.createObjectURL(file);
-      state.photos.push({ id: "demo_" + Math.random().toString(36).slice(2, 8), url, type, team, approved: true, ts: Date.now() });
-      renderGallery();
-    } else {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("upload_preset", SITE_CONFIG.cloudinaryUploadPreset);
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${SITE_CONFIG.cloudinaryCloudName}/auto/upload`, { method: "POST", body: fd });
-      if (!res.ok) throw new Error("upload fallito");
-      const data = await res.json();
-      url = data.secure_url;
-      type = data.resource_type === "video" ? "video" : "image";
-      await db.collection("photos").add({ url, type, team, approved: false, uid: state.uid || "", ts: Date.now() });
-    }
-    row.textContent = state.demo
-      ? `✅ ${file.name} caricato (demo)`
-      : `✅ ${file.name} inviato! Sarà visibile dopo l'approvazione dello staff.`;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", SITE_CONFIG.cloudinaryUploadPreset);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${SITE_CONFIG.cloudinaryCloudName}/auto/upload`, { method: "POST", body: fd });
+    if (!res.ok) throw new Error("upload fallito");
+    const data = await res.json();
+    url = data.secure_url;
+    type = data.resource_type === "video" ? "video" : "image";
+    await db.collection("photos").add({ url, type, team, approved: false, uid: state.uid || "", ts: Date.now() });
+    row.textContent = `✅ ${file.name} inviato! Sarà visibile dopo l'approvazione dello staff.`;
   } catch (e) {
     console.error(e);
     row.textContent = `❌ Errore nel caricamento di ${file.name}, riprova`;

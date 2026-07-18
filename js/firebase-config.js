@@ -3,8 +3,8 @@
 // 2. Aggiungi un'app Web e copia qui l'oggetto firebaseConfig
 // 3. Vedi README.md per i passaggi completi (Firestore + Authentication + regole)
 //
-// Finché questi valori restano "REPLACE_ME", il sito funziona in MODALITÀ DEMO
-// con dati di esempio (nessun salvataggio reale).
+// Questi valori devono puntare a un progetto Firebase valido: il sito legge e
+// scrive sempre su Firestore (nessuna modalità demo).
 
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyASMf3nFf_L8Dn5X9SO9UoxiBadasHvxW8",
