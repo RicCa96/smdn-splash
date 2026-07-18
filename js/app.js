@@ -104,14 +104,107 @@ function setupModals() {
   });
   document.querySelectorAll(".open-regolamento").forEach((a) =>
     a.addEventListener("click", (e) => { e.preventDefault(); openModal("modalRegolamento"); }));
-  document.getElementById("btnAdmin").addEventListener("click", () => openModal("modalAdmin"));
+  document.getElementById("btnAdmin").addEventListener("click", () => {
+    // se già loggato, riapri direttamente il pannello invece del login
+    if (typeof admin !== "undefined" && admin.logged && typeof showAdminPanel === "function") showAdminPanel();
+    else openModal("modalAdmin");
+  });
   document.querySelectorAll(".modal").forEach((m) => {
     m.addEventListener("click", (e) => {
-      if (e.target === m || e.target.hasAttribute("data-close")) m.hidden = true;
+      if (e.target === m || e.target.hasAttribute("data-close")) closeModal(m);
     });
   });
 }
-function openModal(id) { document.getElementById(id).hidden = false; }
+
+// ---------- Modali accessibili (focus trap, Esc, ritorno del focus) ----------
+let modalReturnFocus = null;
+const modalCloseHooks = {}; // id -> callback eseguito alla chiusura (per confirmDialog)
+
+function openModal(id) {
+  const m = document.getElementById(id);
+  if (!m || !m.hidden) return;
+  modalReturnFocus = document.activeElement;
+  m.hidden = false;
+  const f = m.querySelector("input:not([type=hidden]), select, textarea, button:not([data-close])")
+        || m.querySelector("button");
+  if (f) f.focus();
+}
+
+function closeModal(m) {
+  if (typeof m === "string") m = document.getElementById(m);
+  if (!m || m.hidden) return;
+  m.hidden = true;
+  const vid = m.querySelector("video");
+  if (vid) vid.pause();
+  const hook = modalCloseHooks[m.id];
+  if (hook) { delete modalCloseHooks[m.id]; hook(); }
+  if (modalReturnFocus && typeof modalReturnFocus.focus === "function") modalReturnFocus.focus();
+  modalReturnFocus = null;
+}
+
+function topModal() {
+  const mods = [...document.querySelectorAll(".modal")].filter((m) => !m.hidden);
+  return mods[mods.length - 1] || null;
+}
+
+function modalFocusables(m) {
+  return [...m.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    .filter((el) => el.offsetParent !== null);
+}
+
+document.addEventListener("keydown", (e) => {
+  const m = topModal();
+  if (!m) return;
+  if (e.key === "Escape") { e.preventDefault(); closeModal(m); return; }
+  if (e.key !== "Tab") return;
+  const f = modalFocusables(m);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
+// ---------- Dialog di conferma (sostituisce confirm() nativo) ----------
+function confirmDialog({ title = "Conferma", bodyHtml = "", okLabel = "Elimina", danger = true } = {}) {
+  return new Promise((resolve) => {
+    document.getElementById("confirmTitle").textContent = title;
+    document.getElementById("confirmBody").innerHTML = bodyHtml;
+    const ok = document.getElementById("confirmOk");
+    const cancel = document.getElementById("confirmCancel");
+    ok.textContent = okLabel;
+    ok.className = danger ? "btn btn-danger" : "btn btn-primary";
+    let done = false;
+    const finish = (val) => {
+      if (done) return;
+      done = true;
+      ok.onclick = null; cancel.onclick = null;
+      delete modalCloseHooks.modalConfirm;
+      closeModal("modalConfirm");
+      resolve(val);
+    };
+    ok.onclick = () => finish(true);
+    cancel.onclick = () => finish(false);
+    modalCloseHooks.modalConfirm = () => { if (!done) { done = true; ok.onclick = null; cancel.onclick = null; resolve(false); } };
+    openModal("modalConfirm");
+    cancel.focus(); // default sull'azione sicura, non su "Elimina"
+  });
+}
+
+// ---------- Toast con azione "Annulla" ----------
+function toastUndo(msg, undoFn, ms = 6000) {
+  const el = document.getElementById("toast");
+  el.textContent = "";
+  const span = document.createElement("span");
+  span.textContent = msg;
+  const btn = document.createElement("button");
+  btn.className = "toast-undo";
+  btn.textContent = "↩︎ Annulla";
+  el.append(span, btn);
+  el.hidden = false;
+  clearTimeout(el._t);
+  btn.onclick = () => { clearTimeout(el._t); el.hidden = true; el.textContent = ""; undoFn(); };
+  el._t = setTimeout(() => { el.hidden = true; el.textContent = ""; }, ms);
+}
 
 // ---------- Utility ----------
 function teamById(id) { return state.teams.find((t) => t.id === id); }

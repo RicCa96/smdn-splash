@@ -283,27 +283,159 @@ input[type="checkbox"] { width: auto; }
 }
 .modal-close:hover { background: var(--blue-soft); color: var(--blue); }
 
-/* ===== Admin ===== */
-.admin-head { display: flex; justify-content: space-between; align-items: center; }
-.admin-head .btn-ghost { background: var(--bg); border-color: var(--border); color: var(--text); }
-.admin-head .btn-ghost:hover { background: var(--blue-soft); }
-.admin-tabs { display: flex; gap: .4rem; margin: 1rem 0; flex-wrap: wrap; }
-.admin-tab {
-  border: 1px solid var(--border); background: var(--white); color: var(--blue);
-  border-radius: 999px; padding: .4rem 1rem; cursor: pointer; font-weight: 600;
+/* ===== Admin app (full-screen workspace) ===== */
+#adminApp {
+  position: fixed; inset: 0; z-index: 90;
+  background: var(--bg); color: var(--text);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#adminApp[hidden] { display: none; }
+
+.aapp-bar {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .7rem 1.1rem;
+  background: var(--blue); color: var(--white);
+  box-shadow: 0 2px 16px -6px oklch(0.27 0.09 264 / .5);
+}
+.aapp-brand { font-family: var(--font-display); font-size: 1.15rem; }
+.aapp-brand b { color: var(--yellow); font-weight: 700; }
+.aapp-bar-actions { display: flex; gap: .55rem; }
+
+.aapp-body { flex: 1 1 auto; display: flex; min-height: 0; }
+.aapp-nav {
+  flex: 0 0 210px;
+  display: flex; flex-direction: column; gap: .25rem;
+  padding: 1rem .7rem; overflow-y: auto;
+  background: var(--card); border-right: 1px solid var(--border);
+}
+.aapp-navitem {
+  display: flex; align-items: center; gap: .6rem;
+  border: none; background: transparent; color: var(--text);
+  border-radius: 10px; padding: .65rem .85rem; cursor: pointer; text-align: left;
+  font-size: .98rem; font-weight: 600; font-family: inherit;
   transition: background .2s var(--ease), color .2s var(--ease);
 }
-.admin-tab.active { background: var(--blue); color: var(--white); border-color: var(--blue); }
+.aapp-navitem:hover { background: var(--blue-soft); }
+.aapp-navitem.active { background: var(--blue); color: var(--white); }
+
+.aapp-main { flex: 1 1 auto; overflow-y: auto; padding: 1.4rem; }
+.aapp-pane[hidden] { display: none; }
+.pane-grid { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 1.2rem; align-items: start; }
+.pane-col { margin: 0; }
+.pane-col > h3:first-child { margin-top: 0; }
+.pane-narrow { max-width: 560px; }
+.card h3 { color: var(--blue-dark); }
+
+/* Form fields */
+.field { margin: 0 0 .85rem; }
+.field > label { display: block; font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: .2rem; }
+.field > label .muted { font-weight: 500; }
+.field input, .field select, .field textarea { margin: 0; }
+.field-row { display: flex; gap: .8rem; }
+.field-row .field { flex: 1; }
+.field .input-full { width: 100%; }
+.form-actions { display: flex; gap: .6rem; align-items: center; margin-top: 1rem; }
+button[disabled] { opacity: .55; cursor: progress; }
+
+/* Admin list rows */
 .admin-item {
   display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
   background: var(--bg); border-radius: 10px; padding: .55rem .75rem; margin: .35rem 0; font-size: .92rem;
 }
-.admin-item .grow { flex: 1; }
-.admin-item button { background: none; border: none; cursor: pointer; font-size: 1rem; }
+.admin-item .grow { flex: 1; min-width: 0; }
+.admin-item button {
+  background: none; border: none; cursor: pointer; font-size: 1rem;
+  border-radius: 8px; padding: .25rem .4rem; line-height: 1;
+  transition: background .2s var(--ease);
+}
+.admin-item button:hover { background: var(--blue-soft); }
+@keyframes rowFlash { from { background: var(--yellow-tint); } to { background: var(--bg); } }
+.admin-item.flash { animation: rowFlash 1.8s var(--ease); }
+
 .score-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: .7rem 0; font-weight: 600; }
 .check-row { display: flex; align-items: center; gap: .5rem; margin: .6rem 0; }
 .scorer-add { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
 .scorer-add select { flex: 1; min-width: 110px; }
+
+.modal-box-sm { max-width: 420px; }
+.btn-danger { background: var(--red); color: #fff; box-shadow: 0 6px 18px -8px oklch(0.58 0.18 25 / .6); }
+.btn-danger:hover { transform: translateY(-2px); filter: brightness(1.05); }
+
+/* Anteprima giocatori (P1.1) */
+.players-preview { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .55rem; }
+.players-preview:empty { display: none; }
+.players-preview .hint { font-size: .8rem; color: var(--muted); }
+.player-chip {
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 999px;
+  padding: .18rem .35rem .18rem .7rem; font-size: .85rem;
+}
+.player-chip .gtoggle {
+  border: none; cursor: pointer; border-radius: 999px;
+  width: 24px; height: 24px; font-size: .82rem; font-weight: 700; line-height: 1;
+  background: var(--blue-soft); color: var(--blue);
+  transition: background .2s var(--ease);
+}
+.player-chip.f .gtoggle { background: #fde2ec; color: var(--red); }
+
+/* Lista risultati (P1.2) */
+.result-filter { display: flex; gap: .4rem; margin-bottom: .8rem; }
+.rfilter {
+  border: 1px solid var(--border); background: var(--white); color: var(--blue);
+  border-radius: 999px; padding: .3rem .9rem; cursor: pointer; font-weight: 600; font-size: .85rem;
+  transition: background .2s var(--ease), color .2s var(--ease);
+}
+.rfilter.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+.result-daygroup { margin-bottom: .7rem; }
+.result-daygroup > h4 { margin: .35rem 0; color: var(--blue-dark); font-size: .8rem; font-family: var(--font-display); }
+.result-row {
+  display: flex; align-items: center; gap: .55rem; width: 100%; text-align: left;
+  background: var(--bg); border: 1px solid transparent; border-radius: 10px;
+  padding: .55rem .7rem; margin: .3rem 0; cursor: pointer; font-size: .9rem; font-family: inherit; color: var(--text);
+  transition: border-color .2s var(--ease), background .2s var(--ease);
+}
+.result-row:hover { border-color: var(--blue-soft); }
+.result-row.active { border-color: var(--blue); background: var(--blue-soft); }
+.result-row .r-when { font-weight: 700; color: var(--blue); white-space: nowrap; }
+.result-row .r-teams { flex: 1; min-width: 0; }
+.result-badge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; border-radius: 999px; padding: .12rem .5rem; white-space: nowrap; }
+.result-badge.pending { background: var(--blue-soft); color: var(--blue); }
+.result-badge.done { background: #e8f8ef; color: #14833b; }
+
+/* Moderazione foto (P1.3) */
+.photos-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.photos-head h3 { margin-top: 0; }
+.photos-head .btn { padding: .45rem 1rem; font-size: .9rem; }
+.admin-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .7rem; margin: .6rem 0 1.2rem; }
+.admin-photo { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card); display: flex; flex-direction: column; }
+.admin-photo .thumb { position: relative; aspect-ratio: 4/3; cursor: zoom-in; background: var(--bg); }
+.admin-photo .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.admin-photo .thumb .play-badge { width: 36px; height: 36px; font-size: .9rem; }
+.admin-photo .ap-meta { display: flex; align-items: center; gap: .3rem; padding: .4rem .5rem; font-size: .82rem; }
+.admin-photo .ap-meta .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-photo .ap-actions { display: flex; gap: .1rem; }
+.admin-photo .ap-actions button { background: none; border: none; cursor: pointer; font-size: 1rem; border-radius: 8px; padding: .2rem .35rem; transition: background .2s var(--ease); }
+.admin-photo .ap-actions button:hover { background: var(--blue-soft); }
+
+/* Toast con azione Annulla (P1.4) */
+.toast { display: inline-flex; align-items: center; gap: .8rem; }
+.toast-undo { background: oklch(1 0 0 / .18); border: 1px solid oklch(1 0 0 / .38); color: #fff; border-radius: 999px; padding: .28rem .8rem; cursor: pointer; font-weight: 700; font-size: .85rem; font-family: inherit; }
+.toast-undo:hover { background: oklch(1 0 0 / .3); }
+
+@media (max-width: 720px) {
+  .aapp-body { flex-direction: column; }
+  .aapp-nav {
+    flex: 0 0 auto; flex-direction: row; gap: .4rem;
+    padding: .6rem .8rem; overflow-x: auto;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .aapp-navitem { white-space: nowrap; padding: .5rem .8rem; }
+  .aapp-navitem span { display: none; }
+  .aapp-navitem { font-size: 1.15rem; }
+  .aapp-main { padding: 1rem; }
+  .pane-grid { grid-template-columns: 1fr; }
+}
 
 /* ===== Toast / footer ===== */
 .toast {

@@ -152,9 +152,9 @@
 
   <!-- ===== MODAL REGOLAMENTO ===== -->
   <div class="modal" id="modalRegolamento" hidden>
-    <div class="modal-box">
-      <button class="modal-close" data-close>✕</button>
-      <h2>📋 Regolamento</h2>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="regTitle">
+      <button class="modal-close" data-close aria-label="Chiudi">✕</button>
+      <h2 id="regTitle">📋 Regolamento</h2>
 
       <h3>⚽ Calcetto saponato – XVII edizione</h3>
       <ul>
@@ -201,139 +201,255 @@
     </div>
   </div>
 
-  <!-- ===== MODAL ADMIN ===== -->
+  <!-- ===== MODAL LOGIN ADMIN (solo gate) ===== -->
   <div class="modal" id="modalAdmin" hidden>
-    <div class="modal-box">
-      <button class="modal-close" data-close>✕</button>
-
-      <!-- Login -->
+    <div class="modal-box modal-box-sm" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <button class="modal-close" data-close aria-label="Chiudi">✕</button>
       <div id="adminLogin">
-        <h2>🔑 Area Admin</h2>
+        <h2 id="loginTitle">🔑 Area Admin</h2>
         <p class="muted">Accesso riservato allo staff.</p>
-        <input type="email" id="adminEmail" placeholder="Email" autocomplete="username">
-        <input type="password" id="adminPass" placeholder="Password" autocomplete="current-password">
+        <div class="field">
+          <label for="adminEmail">Email</label>
+          <input type="email" id="adminEmail" placeholder="nome@esempio.it" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="adminPass">Password</label>
+          <input type="password" id="adminPass" placeholder="La tua password" autocomplete="current-password">
+        </div>
         <p id="adminLoginError" class="error" hidden>❌ Credenziali errate</p>
         <button id="btnLogin" class="btn btn-primary">🔓 Accedi</button>
       </div>
+    </div>
+  </div>
 
-      <!-- Pannello -->
-      <div id="adminPanel" hidden>
-        <div class="admin-head">
-          <h2>🛠 Pannello admin</h2>
-          <button id="btnLogout" class="btn-ghost">🚪 Esci</button>
-        </div>
+  <!-- ===== APP ADMIN (full-screen) ===== -->
+  <div id="adminApp" hidden>
+    <header class="aapp-bar">
+      <div class="aapp-brand">🛠 <b>Pannello admin</b></div>
+      <div class="aapp-bar-actions">
+        <button id="btnViewSite" class="btn-ghost">👁 Vedi sito</button>
+        <button id="btnLogout" class="btn-ghost">🚪 Esci</button>
+      </div>
+    </header>
 
-        <div class="admin-tabs">
-          <button class="admin-tab active" data-atab="squadre">Squadre</button>
-          <button class="admin-tab" data-atab="partite">Partite</button>
-          <button class="admin-tab" data-atab="risultati">Risultati</button>
-          <button class="admin-tab" data-atab="fanta">Fanta</button>
-          <button class="admin-tab" data-atab="foto">Foto</button>
-        </div>
+    <div class="aapp-body">
+      <nav class="aapp-nav" role="tablist" aria-label="Sezioni admin">
+        <button class="aapp-navitem active" data-atab="squadre" role="tab" aria-selected="true">🏆 <span>Squadre</span></button>
+        <button class="aapp-navitem" data-atab="partite" role="tab" aria-selected="false">📅 <span>Partite</span></button>
+        <button class="aapp-navitem" data-atab="risultati" role="tab" aria-selected="false">🎯 <span>Risultati</span></button>
+        <button class="aapp-navitem" data-atab="fanta" role="tab" aria-selected="false">🌊 <span>Fanta</span></button>
+        <button class="aapp-navitem" data-atab="foto" role="tab" aria-selected="false">📸 <span>Foto</span></button>
+      </nav>
+
+      <main class="aapp-main">
 
         <!-- Squadre -->
-        <div class="admin-pane" id="apane-squadre">
-          <h3>➕ Nuova squadra</h3>
-          <input type="text" id="tName" placeholder="Nome squadra">
-          <select id="tTourney">
-            <option value="calcetto">⚽ Calcetto</option>
-            <option value="volley">🏐 Volley</option>
-            <option value="entrambi">⚽🏐 Entrambi</option>
-          </select>
-          <input type="text" id="tEmoji" placeholder="Emoji stemma (es. 🦈)" maxlength="4">
-          <textarea id="tPlayers" rows="4" placeholder="Giocatori, uno per riga.&#10;Aggiungi (F) dopo il nome per le giocatrici, es:&#10;Giulia T. (F)"></textarea>
-          <button id="btnAddTeam" class="btn btn-primary">✅ Salva squadra</button>
-          <h3>Squadre esistenti</h3>
-          <div id="adminTeamsList"></div>
-        </div>
-
-        <!-- Partite -->
-        <div class="admin-pane" id="apane-partite" hidden>
-          <h3>➕ Nuova partita</h3>
-          <select id="mTourney">
-            <option value="calcetto">⚽ Calcetto</option>
-            <option value="volley">🏐 Volley</option>
-          </select>
-          <select id="mTeamA"><option value="">Squadra 1…</option></select>
-          <select id="mTeamB"><option value="">Squadra 2…</option></select>
-          <select id="mDay">
-            <option value="GIO 30/07">GIO 30/07</option>
-            <option value="VEN 31/07">VEN 31/07</option>
-            <option value="SAB 01/08">SAB 01/08</option>
-            <option value="DOM 02/08">DOM 02/08</option>
-          </select>
-          <input type="time" id="mTime" value="17:00">
-          <input type="text" id="mLabel" placeholder="Fase (es. Gironi, Semifinale) – opzionale">
-          <button id="btnAddMatch" class="btn btn-primary">✅ Aggiungi partita</button>
-          <h3>Partite inserite</h3>
-          <div id="adminMatchesList"></div>
-        </div>
-
-        <!-- Risultati -->
-        <div class="admin-pane" id="apane-risultati" hidden>
-          <h3>Aggiorna risultato</h3>
-          <select id="rMatch"><option value="">Seleziona partita…</option></select>
-          <div id="rEditor" hidden>
-            <div class="score-row">
-              <span id="rTeamAName"></span>
-              <input type="number" id="rScoreA" min="0" value="0">
-              <b>–</b>
-              <input type="number" id="rScoreB" min="0" value="0">
-              <span id="rTeamBName"></span>
-            </div>
-            <label class="check-row"><input type="checkbox" id="rPlayed"> Partita conclusa</label>
-            <div id="rScorersBox" hidden>
-              <h3>⚽ Marcatori</h3>
-              <div id="rScorersList"></div>
-              <div class="scorer-add">
-                <select id="rScorerTeam"><option value="A">Squadra 1</option><option value="B">Squadra 2</option></select>
-                <select id="rScorerPlayer"></select>
-                <input type="number" id="rScorerGoals" min="1" value="1" title="Gol">
-                <button id="btnAddScorer" class="btn-ghost">➕</button>
+        <section class="aapp-pane" id="apane-squadre">
+          <div class="pane-grid">
+            <div class="pane-col card">
+              <h3 id="teamFormTitle">➕ Nuova squadra</h3>
+              <div class="field">
+                <label for="tName">Nome squadra</label>
+                <input type="text" id="tName" placeholder="es. Gli Squali">
+              </div>
+              <div class="field">
+                <label for="tTourney">Torneo</label>
+                <select id="tTourney">
+                  <option value="calcetto">⚽ Calcetto</option>
+                  <option value="volley">🏐 Volley</option>
+                  <option value="entrambi">⚽🏐 Entrambi</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="tEmoji">Emoji stemma</label>
+                <input type="text" id="tEmoji" placeholder="es. 🦈" maxlength="4">
+              </div>
+              <div class="field">
+                <label for="tPlayers">Giocatori <span class="muted">(uno per riga)</span></label>
+                <textarea id="tPlayers" rows="5" placeholder="Aggiungi (F) dopo il nome per le giocatrici, es:&#10;Giulia T. (F)"></textarea>
+                <div id="tPlayersPreview" class="players-preview"></div>
+              </div>
+              <div class="form-actions">
+                <button id="btnAddTeam" class="btn btn-primary">✅ Salva squadra</button>
+                <button id="btnCancelTeam" class="btn-ghost" hidden>Annulla</button>
               </div>
             </div>
-            <button id="btnSaveResult" class="btn btn-primary">💾 Salva risultato</button>
+            <div class="pane-col card">
+              <h3>Squadre esistenti</h3>
+              <div id="adminTeamsList"></div>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <!-- Partite -->
+        <section class="aapp-pane" id="apane-partite" hidden>
+          <div class="pane-grid">
+            <div class="pane-col card">
+              <h3 id="matchFormTitle">➕ Nuova partita</h3>
+              <div class="field">
+                <label for="mTourney">Torneo</label>
+                <select id="mTourney">
+                  <option value="calcetto">⚽ Calcetto</option>
+                  <option value="volley">🏐 Volley</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="mTeamA">Squadra 1</label>
+                <select id="mTeamA"><option value="">Squadra 1…</option></select>
+              </div>
+              <div class="field">
+                <label for="mTeamB">Squadra 2</label>
+                <select id="mTeamB"><option value="">Squadra 2…</option></select>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="mDay">Giorno</label>
+                  <select id="mDay">
+                    <option value="GIO 30/07">GIO 30/07</option>
+                    <option value="VEN 31/07">VEN 31/07</option>
+                    <option value="SAB 01/08">SAB 01/08</option>
+                    <option value="DOM 02/08">DOM 02/08</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="mTime">Ora</label>
+                  <input type="time" id="mTime" value="17:00">
+                </div>
+              </div>
+              <div class="field">
+                <label for="mLabel">Fase <span class="muted">(opzionale)</span></label>
+                <input type="text" id="mLabel" placeholder="es. Gironi, Semifinale">
+              </div>
+              <div class="form-actions">
+                <button id="btnAddMatch" class="btn btn-primary">✅ Aggiungi partita</button>
+                <button id="btnCancelMatch" class="btn-ghost" hidden>Annulla</button>
+              </div>
+            </div>
+            <div class="pane-col card">
+              <h3>Partite inserite</h3>
+              <div id="adminMatchesList"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Risultati -->
+        <section class="aapp-pane" id="apane-risultati" hidden>
+          <div class="pane-grid">
+            <div class="pane-col card">
+              <h3>🎯 Partite</h3>
+              <div class="result-filter" role="group" aria-label="Filtro partite">
+                <button class="rfilter active" data-rfilter="pending" aria-pressed="true">Da giocare</button>
+                <button class="rfilter" data-rfilter="all" aria-pressed="false">Tutte</button>
+              </div>
+              <div id="resultMatchList"></div>
+            </div>
+            <div class="pane-col card">
+              <h3 id="rEditorTitle">Risultato</h3>
+              <p id="rEditorEmpty" class="muted">Scegli una partita dalla lista per inserire il risultato.</p>
+              <div id="rEditor" hidden>
+                <div class="score-row">
+                  <span id="rTeamAName"></span>
+                  <input type="number" id="rScoreA" min="0" value="0" aria-label="Punteggio squadra 1">
+                  <b>–</b>
+                  <input type="number" id="rScoreB" min="0" value="0" aria-label="Punteggio squadra 2">
+                  <span id="rTeamBName"></span>
+                </div>
+                <label class="check-row"><input type="checkbox" id="rPlayed"> Partita conclusa</label>
+                <div id="rScorersBox" hidden>
+                  <h3>⚽ Marcatori</h3>
+                  <div id="rScorersList"></div>
+                  <div class="scorer-add">
+                    <select id="rScorerTeam" aria-label="Squadra del marcatore"><option value="A">Squadra 1</option><option value="B">Squadra 2</option></select>
+                    <select id="rScorerPlayer" aria-label="Marcatore"></select>
+                    <input type="number" id="rScorerGoals" min="1" value="1" aria-label="Gol" title="Gol">
+                    <button id="btnAddScorer" class="btn-ghost">➕</button>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button id="btnSaveResult" class="btn btn-primary">💾 Salva risultato</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <!-- Fanta -->
-        <div class="admin-pane" id="apane-fanta" hidden>
-          <h3>➕ Assegna punti Fanta</h3>
-          <select id="fTeam"><option value="">Squadra…</option></select>
-          <select id="fReason">
-            <option value="">Motivo…</option>
-            <option>Partecipazione edizioni precedenti (+30)</option>
-            <option>Nuova squadra invitata (+50)</option>
-            <option>Iscrizione entro 7 luglio (+50)</option>
-            <option>Partecipa a entrambi i tornei (+50)</option>
-            <option>Story Instagram foto di squadra</option>
-            <option>Story Instagram azione di gioco</option>
-            <option>Premio bar</option>
-            <option>Fair play</option>
-            <option value="_altro">Altro…</option>
-          </select>
-          <input type="text" id="fReasonCustom" placeholder="Motivo personalizzato" hidden>
-          <input type="number" id="fPoints" placeholder="Punti (anche negativi)" style="width:100%">
-          <button id="btnAddFanta" class="btn btn-primary">✅ Assegna punti</button>
-          <h3>Punti assegnati</h3>
-          <div id="adminFantaList"></div>
-        </div>
+        <section class="aapp-pane" id="apane-fanta" hidden>
+          <div class="pane-grid">
+            <div class="pane-col card">
+              <h3 id="fantaFormTitle">➕ Assegna punti Fanta</h3>
+              <div class="field">
+                <label for="fTeam">Squadra</label>
+                <select id="fTeam"><option value="">Squadra…</option></select>
+              </div>
+              <div class="field">
+                <label for="fReason">Motivo</label>
+                <select id="fReason">
+                  <option value="">Motivo…</option>
+                  <option>Partecipazione edizioni precedenti (+30)</option>
+                  <option>Nuova squadra invitata (+50)</option>
+                  <option>Iscrizione entro 7 luglio (+50)</option>
+                  <option>Partecipa a entrambi i tornei (+50)</option>
+                  <option>Story Instagram foto di squadra</option>
+                  <option>Story Instagram azione di gioco</option>
+                  <option>Premio bar</option>
+                  <option>Fair play</option>
+                  <option value="_altro">Altro…</option>
+                </select>
+              </div>
+              <div class="field" id="fReasonCustomField" hidden>
+                <label for="fReasonCustom">Motivo personalizzato</label>
+                <input type="text" id="fReasonCustom" placeholder="Descrivi il motivo">
+              </div>
+              <div class="field">
+                <label for="fPoints">Punti <span class="muted">(anche negativi)</span></label>
+                <input type="number" id="fPoints" placeholder="es. 50" class="input-full">
+              </div>
+              <div class="form-actions">
+                <button id="btnAddFanta" class="btn btn-primary">✅ Assegna punti</button>
+                <button id="btnCancelFanta" class="btn-ghost" hidden>Annulla</button>
+              </div>
+            </div>
+            <div class="pane-col card">
+              <h3>Punti assegnati</h3>
+              <div id="adminFantaList"></div>
+            </div>
+          </div>
+        </section>
 
         <!-- Foto -->
-        <div class="admin-pane" id="apane-foto" hidden>
-          <h3>🕓 In attesa di approvazione</h3>
-          <div id="adminPhotosPending"></div>
-          <h3>✅ Pubblicate</h3>
-          <div id="adminPhotosApproved"></div>
-        </div>
-      </div>
+        <section class="aapp-pane" id="apane-foto" hidden>
+          <div class="pane-col card">
+            <div class="photos-head">
+              <h3>🕓 In attesa di approvazione</h3>
+              <button id="btnApproveAll" class="btn btn-primary" hidden>✅ Approva tutte</button>
+            </div>
+            <div id="adminPhotosPending" class="admin-photo-grid"></div>
+            <h3>✅ Pubblicate</h3>
+            <div id="adminPhotosApproved" class="admin-photo-grid"></div>
+          </div>
+        </section>
+
+      </main>
     </div>
   </div>
 
   <!-- ===== LIGHTBOX ===== -->
   <div class="modal lightbox" id="modalLightbox" hidden>
-    <button class="modal-close" data-close>✕</button>
-    <div id="lightboxContent"></div>
+    <button class="modal-close" data-close aria-label="Chiudi">✕</button>
+    <div id="lightboxContent" role="dialog" aria-modal="true" aria-label="Contenuto ingrandito"></div>
+  </div>
+
+  <!-- ===== MODAL CONFERMA ===== -->
+  <div class="modal" id="modalConfirm" hidden>
+    <div class="modal-box modal-box-sm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h2 id="confirmTitle">Conferma</h2>
+      <p id="confirmBody" class="muted"></p>
+      <div class="form-actions">
+        <button id="confirmOk" class="btn btn-danger">Elimina</button>
+        <button id="confirmCancel" class="btn-ghost">Annulla</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast" hidden></div>
