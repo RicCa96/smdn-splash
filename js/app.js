@@ -225,7 +225,9 @@ function toastUndo(msg, undoFn, ms = 6000) {
 
 // ---------- Utility ----------
 function teamById(id) { return state.teams.find((t) => t.id === id); }
-function teamName(id) { const t = teamById(id); return t ? `${t.emoji || "🏳️"} ${t.name}` : "?"; }
+function teamName(id) { const t = teamById(id); return t ? t.name : "?"; }
+// Pallino colore per un id squadra, sicuro da iniettare come HTML (stringa vuota se squadra assente).
+function teamDotById(id) { const t = teamById(id); return t ? teamDot(t) : ""; }
 function inTourney(t) { return t.tournament === state.tourney || t.tournament === "entrambi"; }
 // Normalizza i giocatori: stringhe legacy -> oggetti {name, gender}
 function normPlayers(t) {
@@ -283,7 +285,7 @@ function renderNextMatches() {
   el.innerHTML = next.map((m) => `
     <div class="next-match">
       <span class="when">${esc(m.day)} · ${esc(m.time)}</span>
-      <span>${esc(teamName(m.teamA))} <b>vs</b> ${esc(teamName(m.teamB))}</span>
+      <span>${teamDotById(m.teamA)}${esc(teamName(m.teamA))} <b>vs</b> ${teamDotById(m.teamB)}${esc(teamName(m.teamB))}</span>
       ${m.label ? `<span class="muted">(${esc(m.label)})</span>` : ""}
     </div>`).join("");
 }
@@ -299,7 +301,7 @@ function renderTeams() {
   }
   el.innerHTML = teams.map((t) => `
     <div class="team-card">
-      <h3><span class="emoji">${esc(t.emoji || "🏳️")}</span> ${esc(t.name)}
+      <h3>${teamDot(t)}${esc(t.name)}
         ${t.tournament === "entrambi" ? '<span class="team-badge">⚽+🏐</span>' : ""}</h3>
       <ul>${normPlayers(t).map((p) => `<li>${esc(p.name)}${p.gender === "f" ? " <span class='f-mark'>♀</span>" : ""}</li>`).join("")}</ul>
     </div>`).join("");
@@ -322,9 +324,9 @@ function renderMatches() {
         return `
         <div class="match-row">
           <span class="time">${esc(m.time)}</span>
-          <span class="team a">${esc(teamName(m.teamA))}</span>
+          <span class="team a">${teamDotById(m.teamA)}${esc(teamName(m.teamA))}</span>
           <span class="score ${m.played ? "" : "pending"}">${m.played ? `${m.scoreA} – ${m.scoreB}` : "vs"}</span>
-          <span class="team b">${esc(teamName(m.teamB))}</span>
+          <span class="team b">${teamDotById(m.teamB)}${esc(teamName(m.teamB))}</span>
           ${m.label ? `<span class="match-label">${esc(m.label)}</span>` : ""}
           ${m.played && scorersTxt ? `<span class="match-scorers">⚽ ${scorersTxt}</span>` : ""}
         </div>`;
@@ -356,7 +358,7 @@ function renderStandings() {
     <table class="rank">
       <tr><th>#</th><th>Squadra</th><th>Pt</th><th>G</th><th>V</th><th>N</th><th>P</th><th>${unit} F</th><th>${unit} S</th></tr>
       ${rows.map((r, i) => `
-        <tr><td>${i + 1}</td><td>${esc(teamName(r.id))}</td><td><b>${r.pts}</b></td>
+        <tr><td>${i + 1}</td><td>${teamDotById(r.id)}${esc(teamName(r.id))}</td><td><b>${r.pts}</b></td>
         <td>${r.g}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.gs}</td></tr>`).join("")}
     </table>
     <p class="muted" style="font-size:.8rem">Vittoria 3 pt · Pareggio 1 pt · Sconfitta 0 pt</p>`;
@@ -385,7 +387,7 @@ function renderScorers() {
     <table class="rank">
       <tr><th>#</th><th>Giocatore</th><th>Squadra</th><th>Gol</th></tr>
       ${rows.map((r, i) => `
-        <tr><td>${i + 1}</td><td>${esc(r.player)}</td><td>${esc(teamName(r.teamId))}</td><td><b>${r.goals}</b></td></tr>`).join("")}
+        <tr><td>${i + 1}</td><td>${esc(r.player)}</td><td>${teamDotById(r.teamId)}${esc(teamName(r.teamId))}</td><td><b>${r.goals}</b></td></tr>`).join("")}
     </table>`;
 }
 
@@ -409,13 +411,13 @@ function renderFanta() {
     <table class="rank">
       <tr><th>#</th><th>Squadra</th><th>Punti Fanta</th></tr>
       ${rows.map((r, i) => `
-        <tr><td>${i + 1}</td><td>${esc(teamName(r.teamId))}</td><td><b>${r.pts}</b></td></tr>`).join("")}
+        <tr><td>${i + 1}</td><td>${teamDotById(r.teamId)}${esc(teamName(r.teamId))}</td><td><b>${r.pts}</b></td></tr>`).join("")}
     </table>`;
   const last = [...state.fanta].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 6);
   logEl.innerHTML = `<h3>Ultimi punti assegnati</h3>` + last.map((f) => `
     <div class="fanta-entry">
       <span class="fanta-pts ${f.points < 0 ? "neg" : ""}">${f.points > 0 ? "+" : ""}${f.points}</span>
-      <span><b>${esc(teamName(f.teamId))}</b> · ${esc(f.reason)}</span>
+      <span>${teamDotById(f.teamId)}<b>${esc(teamName(f.teamId))}</b> · ${esc(f.reason)}</span>
     </div>`).join("");
 }
 
@@ -451,7 +453,7 @@ function renderMvpCategory(cat) {
     area.innerHTML = `
       <div class="mvp-form">
         <select class="mvpTeam"><option value="">Squadra…</option>
-          ${teams.map((t) => `<option value="${esc(t.id)}">${esc(t.emoji || "")} ${esc(t.name)}</option>`).join("")}
+          ${teams.map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("")}
         </select>
         <select class="mvpPlayer" disabled><option value="">${cat === "f" ? "Giocatrice…" : "Giocatore…"}</option></select>
         <button class="btn btn-primary mvpVote" disabled>⭐ Vota</button>

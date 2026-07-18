@@ -201,7 +201,7 @@ document.getElementById("btnAddTeam").addEventListener("click", (e) => {
   const team = {
     name,
     tournament: document.getElementById("tTourney").value,
-    emoji: document.getElementById("tEmoji").value.trim() || "🏳️",
+    color: document.getElementById("tColor").value || DEFAULT_TEAM_COLOR,
     players: parsePlayers(document.getElementById("tPlayers").value),
   };
   const editing = admin.editTeamId;
@@ -226,7 +226,7 @@ function startEditTeam(id) {
   admin.editTeamId = id;
   document.getElementById("tName").value = t.name || "";
   document.getElementById("tTourney").value = t.tournament || "calcetto";
-  document.getElementById("tEmoji").value = t.emoji && t.emoji !== "🏳️" ? t.emoji : "";
+  document.getElementById("tColor").value = teamColor(t);
   document.getElementById("tPlayers").value =
     normPlayers(t).map((p) => p.name + (p.gender === "f" ? " (F)" : "")).join("\n");
   renderPlayersPreview();
@@ -240,7 +240,7 @@ function startEditTeam(id) {
 function resetTeamForm() {
   admin.editTeamId = null;
   document.getElementById("tName").value = "";
-  document.getElementById("tEmoji").value = "";
+  document.getElementById("tColor").value = DEFAULT_TEAM_COLOR;
   document.getElementById("tPlayers").value = "";
   document.getElementById("tTourney").value = "calcetto";
   renderPlayersPreview();
@@ -361,7 +361,7 @@ function renderResultList() {
       ${byDay[day].map((m) => `
         <button type="button" class="result-row ${m.id === admin.selMatchId ? "active" : ""}" onclick="selectResultMatch('${m.id}')">
           <span class="r-when">${esc(m.time)}</span>
-          <span class="r-teams">${esc(teamName(m.teamA))} vs ${esc(teamName(m.teamB))}</span>
+          <span class="r-teams">${teamDotById(m.teamA)}${esc(teamName(m.teamA))} vs ${teamDotById(m.teamB)}${esc(teamName(m.teamB))}</span>
           <span class="result-badge ${m.played ? "done" : "pending"}">${m.played ? `${m.scoreA}–${m.scoreB}` : "da giocare"}</span>
         </button>`).join("")}
     </div>`).join("");
@@ -474,7 +474,7 @@ async function adminDeleteFanta(id) {
   const pts = f ? (f.points > 0 ? "+" : "") + f.points : "";
   const okc = await confirmDialog({
     title: "Rimuovi voce fanta",
-    bodyHtml: `Rimuovere <b>${esc(pts)}</b> da <b>${esc(teamName(f && f.teamId))}</b>${f ? ` (${esc(f.reason)})` : ""}?`,
+    bodyHtml: `Rimuovere <b>${esc(pts)}</b> da ${f ? teamDotById(f.teamId) : ""}<b>${esc(teamName(f && f.teamId))}</b>${f ? ` (${esc(f.reason)})` : ""}?`,
     okLabel: "Rimuovi",
   });
   if (!okc) return;
@@ -583,7 +583,7 @@ async function adminDeleteMatch(id) {
   const m = state.matches.find((x) => x.id === id);
   const okc = await confirmDialog({
     title: "Elimina partita",
-    bodyHtml: `Eliminare la partita <b>${esc(teamName(m && m.teamA))} vs ${esc(teamName(m && m.teamB))}</b>?`
+    bodyHtml: `Eliminare la partita <b>${m ? teamDotById(m.teamA) : ""}${esc(teamName(m && m.teamA))} vs ${m ? teamDotById(m.teamB) : ""}${esc(teamName(m && m.teamB))}</b>?`
       + (m && m.played ? "<br>Il risultato inserito andrà perso." : ""),
     okLabel: "Elimina",
   });
@@ -632,7 +632,7 @@ function renderAdminTeams() {
 
   const teamRow = (t) => `
       <div class="admin-item" data-id="${esc(t.id)}">
-        <span>${esc(t.emoji || "🏳️")}</span>
+        <span>${teamDot(t)}</span>
         <span class="grow"><b>${esc(t.name)}</b> ${icon[t.tournament] || ""} · ${normPlayers(t).length} giocatori</span>
         <button title="Modifica" aria-label="Modifica ${esc(t.name)}" onclick="startEditTeam('${t.id}')">✏️</button>
         <button title="Elimina" aria-label="Elimina ${esc(t.name)}" onclick="adminDeleteTeam('${t.id}')">🗑️</button>
@@ -673,7 +673,7 @@ function renderAdminMatches() {
       ${byDay[day].map((m) => `
         <div class="admin-item" data-id="${esc(m.id)}">
           <span>${m.tournament === "calcetto" ? "⚽" : "🏐"}</span>
-          <span class="grow">${esc(m.time)} · ${esc(teamName(m.teamA))} vs ${esc(teamName(m.teamB))}${m.played ? ` <b>(${m.scoreA}–${m.scoreB})</b>` : ""}${m.label ? ` <span class="muted">· ${esc(m.label)}</span>` : ""}</span>
+          <span class="grow">${esc(m.time)} · ${teamDotById(m.teamA)}${esc(teamName(m.teamA))} vs ${teamDotById(m.teamB)}${esc(teamName(m.teamB))}${m.played ? ` <b>(${m.scoreA}–${m.scoreB})</b>` : ""}${m.label ? ` <span class="muted">· ${esc(m.label)}</span>` : ""}</span>
           <button title="Modifica" aria-label="Modifica partita" onclick="startEditMatch('${m.id}')">✏️</button>
           <button title="Elimina" aria-label="Elimina partita" onclick="adminDeleteMatch('${m.id}')">🗑️</button>
         </div>`).join("")}
@@ -689,7 +689,7 @@ function renderAdminFanta() {
   el.innerHTML = entries.map((f) => `
     <div class="admin-item" data-id="${esc(f.id)}">
       <span class="fanta-pts ${f.points < 0 ? "neg" : ""}">${f.points > 0 ? "+" : ""}${f.points}</span>
-      <span class="grow"><b>${esc(teamName(f.teamId))}</b> · ${esc(f.reason)}${f.ts ? ` <span class="muted">· ${esc(timeAgo(f.ts))}</span>` : ""}</span>
+      <span class="grow">${teamDotById(f.teamId)}<b>${esc(teamName(f.teamId))}</b> · ${esc(f.reason)}${f.ts ? ` <span class="muted">· ${esc(timeAgo(f.ts))}</span>` : ""}</span>
       <button title="Modifica" aria-label="Modifica voce fanta" onclick="startEditFanta('${f.id}')">✏️</button>
       <button title="Rimuovi" aria-label="Rimuovi voce fanta" onclick="adminDeleteFanta('${f.id}')">🗑️</button>
     </div>`).join("")
@@ -751,7 +751,7 @@ function fillMatchTeamSelects() {
     .filter((t) => t.tournament === tourney || t.tournament === "entrambi")
     .sort((a, b) => a.name.localeCompare(b.name));
   const opts = list
-    .map((t) => `<option value="${esc(t.id)}">${esc(t.emoji || "")} ${esc(t.name)}</option>`)
+    .map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`)
     .join("");
   selA.innerHTML = '<option value="">Squadra 1…</option>' + opts;
   selB.innerHTML = '<option value="">Squadra 2…</option>' + opts;
@@ -765,7 +765,7 @@ function fillFantaTeamSelect() {
   const prev = sel.value;
   sel.innerHTML = '<option value="">Squadra…</option>' + [...state.teams]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((t) => `<option value="${esc(t.id)}">${esc(t.emoji || "")} ${esc(t.name)}</option>`).join("");
+    .map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");
   if (prev && state.teams.some((t) => t.id === prev)) sel.value = prev;
 }
 
@@ -810,7 +810,7 @@ function renderScorerList() {
   const el = document.getElementById("rScorersList");
   el.innerHTML = admin.scorers.map((s, i) => `
     <div class="admin-item">
-      <span class="grow">${esc(s.player)} (${esc(teamName(s.team === "A" ? m.teamA : m.teamB))}) ×${s.goals}</span>
+      <span class="grow">${esc(s.player)} (${teamDotById(s.team === "A" ? m.teamA : m.teamB)}${esc(teamName(s.team === "A" ? m.teamA : m.teamB))}) ×${s.goals}</span>
       <button title="Rimuovi" onclick="adminRemoveScorer(${i})">🗑️</button>
     </div>`).join("") || '<p class="muted">Nessun marcatore inserito.</p>';
 }

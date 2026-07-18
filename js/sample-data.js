@@ -1,16 +1,16 @@
 // ===== Dati di esempio, usati solo in MODALITÀ DEMO (Firebase non configurato) =====
 const SAMPLE_DATA = {
   teams: [
-    { id: "t1", name: "Gli Scivolosi", tournament: "calcetto", emoji: "🛝", players: [
+    { id: "t1", name: "Gli Scivolosi", tournament: "calcetto", color: "#e11d48", players: [
       { name: "Marco B.", gender: "m" }, { name: "Luca R.", gender: "m" }, { name: "Giulia T.", gender: "f" },
       { name: "Andrea P.", gender: "m" }, { name: "Sara M.", gender: "f" }, { name: "Paolo V.", gender: "m" }] },
-    { id: "t2", name: "Saponetta FC", tournament: "calcetto", emoji: "🧼", players: [
+    { id: "t2", name: "Saponetta FC", tournament: "calcetto", color: "#0ea5e9", players: [
       { name: "Davide C.", gender: "m" }, { name: "Elena F.", gender: "f" }, { name: "Matteo G.", gender: "m" },
       { name: "Chiara L.", gender: "f" }, { name: "Simone D.", gender: "m" }] },
-    { id: "t3", name: "I Tuffatori", tournament: "volley", emoji: "🤿", players: [
+    { id: "t3", name: "I Tuffatori", tournament: "volley", color: "#16a34a", players: [
       { name: "Anna V.", gender: "f" }, { name: "Francesca R.", gender: "f" }, { name: "Luca M.", gender: "m" },
       { name: "Giorgio S.", gender: "m" }, { name: "Elisa B.", gender: "f" }, { name: "Marco T.", gender: "m" }] },
-    { id: "t4", name: "Onda Anomala", tournament: "entrambi", emoji: "🌊", players: [
+    { id: "t4", name: "Onda Anomala", tournament: "entrambi", color: "#f59e0b", players: [
       { name: "Pietro Z.", gender: "m" }, { name: "Martina C.", gender: "f" }, { name: "Alessia N.", gender: "f" },
       { name: "Fabio Q.", gender: "m" }, { name: "Laura D.", gender: "f" }, { name: "Nicola E.", gender: "m" }] },
   ],
