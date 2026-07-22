@@ -226,13 +226,18 @@ document.getElementById("btnCancelTeam").addEventListener("click", resetTeamForm
 
 // ---------- Partite ----------
 document.getElementById("btnAddMatch").addEventListener("click", (e) => {
-  const teamA = document.getElementById("mTeamA").value;
-  const teamB = document.getElementById("mTeamB").value;
-  if (!teamA || !teamB) return toast("Seleziona le due squadre");
-  if (teamA === teamB) return toast("Le squadre devono essere diverse");
+  const nameA = document.getElementById("mTeamA").value.trim();
+  const nameB = document.getElementById("mTeamB").value.trim();
+  if (!nameA || !nameB) return toast("Indica le due squadre");
+  if (nameA.toLowerCase() === nameB.toLowerCase()) return toast("Le squadre devono essere diverse");
+  const tournament = document.getElementById("mTourney").value;
+  const pool = state.teams.filter((t) => t.tournament === tournament || t.tournament === "entrambi");
+  const a = resolveMatchSide(nameA, pool);
+  const b = resolveMatchSide(nameB, pool);
   const base = {
-    tournament: document.getElementById("mTourney").value,
-    teamA, teamB,
+    tournament,
+    teamA: a.teamId, teamAName: a.teamName,
+    teamB: b.teamId, teamBName: b.teamName,
     day: document.getElementById("mDay").value,
     time: document.getElementById("mTime").value || "17:00",
     label: document.getElementById("mLabel").value.trim(),
@@ -254,14 +259,19 @@ document.getElementById("btnAddMatch").addEventListener("click", (e) => {
   });
 });
 
+function matchEditValue(m, side) {
+  const t = teamById(m["team" + side]);
+  return t ? t.name : (m["team" + side + "Name"] || "");
+}
+
 function startEditMatch(id) {
   const m = state.matches.find((x) => x.id === id);
   if (!m) return;
   admin.editMatchId = id;
   document.getElementById("mTourney").value = m.tournament || "calcetto";
   fillMatchTeamSelects(); // ricostruisce le opzioni in base al torneo
-  document.getElementById("mTeamA").value = m.teamA || "";
-  document.getElementById("mTeamB").value = m.teamB || "";
+  document.getElementById("mTeamA").value = matchEditValue(m, "A");
+  document.getElementById("mTeamB").value = matchEditValue(m, "B");
   document.getElementById("mDay").value = m.day || "GIO 30/07";
   document.getElementById("mTime").value = m.time || "17:00";
   document.getElementById("mLabel").value = m.label || "";
@@ -334,7 +344,7 @@ function renderResultList() {
       ${byDay[day].map((m) => `
         <button type="button" class="result-row ${m.id === admin.selMatchId ? "active" : ""}" onclick="selectResultMatch('${m.id}')">
           <span class="r-when">${esc(m.time)}</span>
-          <span class="r-teams">${teamDotById(m.teamA)}${esc(teamName(m.teamA))} vs ${teamDotById(m.teamB)}${esc(teamName(m.teamB))}</span>
+          <span class="r-teams">${matchTeamDot(m, "A")}${esc(matchTeamName(m, "A"))} vs ${matchTeamDot(m, "B")}${esc(matchTeamName(m, "B"))}</span>
           <span class="result-badge ${m.played ? "done" : "pending"}">${m.played ? `${m.scoreA}–${m.scoreB}` : "da giocare"}</span>
         </button>`).join("")}
     </div>`).join("");
@@ -691,20 +701,12 @@ document.getElementById("btnApproveAll").addEventListener("click", adminApproveA
 
 function fillMatchTeamSelects() {
   const tourney = document.getElementById("mTourney").value;
-  const selA = document.getElementById("mTeamA");
-  const selB = document.getElementById("mTeamB");
-  const prevA = selA.value, prevB = selB.value;
   const list = state.teams
     .filter((t) => t.tournament === tourney || t.tournament === "entrambi")
     .sort((a, b) => a.name.localeCompare(b.name));
-  const opts = list
-    .map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`)
+  document.getElementById("matchTeamOpts").innerHTML = list
+    .map((t) => `<option value="${esc(t.name)}"></option>`)
     .join("");
-  selA.innerHTML = '<option value="">Squadra 1…</option>' + opts;
-  selB.innerHTML = '<option value="">Squadra 2…</option>' + opts;
-  // preserva la selezione (non azzerare una modifica in corso su un aggiornamento dati)
-  if (list.some((t) => t.id === prevA)) selA.value = prevA;
-  if (list.some((t) => t.id === prevB)) selB.value = prevB;
 }
 
 function fillFantaTeamSelect() {
@@ -723,9 +725,9 @@ function loadResultEditor() {
   if (!m) { box.hidden = true; empty.hidden = false; return; }
   empty.hidden = true;
   box.hidden = false;
-  document.getElementById("rEditorTitle").textContent = `${teamName(m.teamA)} vs ${teamName(m.teamB)}`;
-  document.getElementById("rTeamAName").textContent = teamName(m.teamA);
-  document.getElementById("rTeamBName").textContent = teamName(m.teamB);
+  document.getElementById("rEditorTitle").textContent = `${matchTeamName(m, "A")} vs ${matchTeamName(m, "B")}`;
+  document.getElementById("rTeamAName").textContent = matchTeamName(m, "A");
+  document.getElementById("rTeamBName").textContent = matchTeamName(m, "B");
   document.getElementById("rScoreA").value = m.scoreA || 0;
   document.getElementById("rScoreB").value = m.scoreB || 0;
   document.getElementById("rPlayed").checked = !!m.played;

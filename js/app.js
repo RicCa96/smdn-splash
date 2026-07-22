@@ -214,6 +214,8 @@ function teamById(id) { return state.teams.find((t) => t.id === id); }
 function teamName(id) { const t = teamById(id); return t ? t.name : "?"; }
 // Pallino colore per un id squadra, sicuro da iniettare come HTML (stringa vuota se squadra assente).
 function teamDotById(id) { const t = teamById(id); return t ? teamDot(t) : ""; }
+function matchTeamName(m, side) { return matchSideName(m, side, state.teams); }
+function matchTeamDot(m, side) { const t = teamById(m["team" + side]); return t ? teamDot(t) : ""; }
 function inTourney(t) { return t.tournament === state.tourney || t.tournament === "entrambi"; }
 // Normalizza i giocatori: stringhe legacy -> oggetti {name, gender}
 function normPlayers(t) {
@@ -271,7 +273,7 @@ function renderNextMatches() {
   el.innerHTML = next.map((m) => `
     <div class="next-match">
       <span class="when">${esc(m.day)} · ${esc(m.time)}</span>
-      <span>${teamDotById(m.teamA)}${esc(teamName(m.teamA))} <b>vs</b> ${teamDotById(m.teamB)}${esc(teamName(m.teamB))}</span>
+      <span>${matchTeamDot(m, "A")}${esc(matchTeamName(m, "A"))} <b>vs</b> ${matchTeamDot(m, "B")}${esc(matchTeamName(m, "B"))}</span>
       ${m.label ? `<span class="muted">(${esc(m.label)})</span>` : ""}
     </div>`).join("");
 }
@@ -310,9 +312,9 @@ function renderMatches() {
         return `
         <div class="match-row">
           <span class="time">${esc(m.time)}</span>
-          <span class="team a">${teamDotById(m.teamA)}${esc(teamName(m.teamA))}</span>
+          <span class="team a">${matchTeamDot(m, "A")}${esc(matchTeamName(m, "A"))}</span>
           <span class="score ${m.played ? "" : "pending"}">${m.played ? `${m.scoreA} – ${m.scoreB}` : "vs"}</span>
-          <span class="team b">${teamDotById(m.teamB)}${esc(teamName(m.teamB))}</span>
+          <span class="team b">${matchTeamDot(m, "B")}${esc(matchTeamName(m, "B"))}</span>
           ${m.label ? `<span class="match-label">${esc(m.label)}</span>` : ""}
           ${m.played && scorersTxt ? `<span class="match-scorers">⚽ ${scorersTxt}</span>` : ""}
         </div>`;
@@ -322,7 +324,7 @@ function renderMatches() {
 
 function renderStandings() {
   const el = document.getElementById("standings");
-  const played = currentMatches().filter((m) => m.played);
+  const played = currentMatches().filter((m) => m.played && matchSideHasRealTeam(m, "A", state.teams) && matchSideHasRealTeam(m, "B", state.teams));
   if (!played.length) {
     el.innerHTML = '<p class="muted">Classifica non ancora disponibile…</p>';
     return;
@@ -356,7 +358,7 @@ function renderScorers() {
   if (state.tourney !== "calcetto") return;
   const el = document.getElementById("scorers");
   const tally = {};
-  state.matches.filter((m) => m.tournament === "calcetto" && m.played).forEach((m) => {
+  state.matches.filter((m) => m.tournament === "calcetto" && m.played && matchSideHasRealTeam(m, "A", state.teams) && matchSideHasRealTeam(m, "B", state.teams)).forEach((m) => {
     (m.scorers || []).forEach((s) => {
       const tid = s.team === "A" ? m.teamA : m.teamB;
       const key = `${s.player}|${tid}`;
