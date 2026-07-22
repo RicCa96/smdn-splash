@@ -308,15 +308,24 @@ function renderMatches() {
     <div class="match-day">
       <h3>📆 ${esc(day)}</h3>
       ${byDay[day].map((m) => {
-        const scorersTxt = (m.scorers || []).map((s) => `${esc(s.player)}${s.goals > 1 ? " ×" + s.goals : ""}`).join(", ");
+        const fmtScorers = (side) => (m.scorers || [])
+          .filter((s) => s.team === side)
+          .map((s) => `${esc(s.player)}${s.goals > 1 ? " ×" + s.goals : ""}`)
+          .join(", ");
+        const scA = fmtScorers("A"), scB = fmtScorers("B");
+        const hasGoals = (m.scoreA || 0) > 0 || (m.scoreB || 0) > 0;
+        const showScore = m.played || hasGoals;
+        const scoreCls = m.played ? "" : (hasGoals ? "live" : "pending");
+        const scoreTxt = showScore ? `${m.scoreA || 0} – ${m.scoreB || 0}` : "vs";
         return `
         <div class="match-row">
           <span class="time">${esc(m.time)}</span>
-          <span class="team a">${matchTeamDot(m, "A")}${esc(matchTeamName(m, "A"))}</span>
-          <span class="score ${m.played ? "" : "pending"}">${m.played ? `${m.scoreA} – ${m.scoreB}` : "vs"}</span>
-          <span class="team b">${matchTeamDot(m, "B")}${esc(matchTeamName(m, "B"))}</span>
           ${m.label ? `<span class="match-label">${esc(m.label)}</span>` : ""}
-          ${m.played && scorersTxt ? `<span class="match-scorers">⚽ ${scorersTxt}</span>` : ""}
+          <span class="team a">${matchTeamDot(m, "A")}${esc(matchTeamName(m, "A"))}</span>
+          <span class="score ${scoreCls}">${scoreTxt}</span>
+          <span class="team b">${matchTeamDot(m, "B")}${esc(matchTeamName(m, "B"))}</span>
+          ${scA ? `<span class="match-scorers a">⚽ ${scA}</span>` : ""}
+          ${scB ? `<span class="match-scorers b">⚽ ${scB}</span>` : ""}
         </div>`;
       }).join("")}
     </div>`).join("");
