@@ -9,7 +9,7 @@ Static site (HTML/CSS/vanilla JS, no build step, no framework, no bundler) for t
 ## Commands
 
 - **Run locally:** `python3 -m http.server` then open `http://localhost:8000`. A static server is required (not `file://`) because scripts load Firebase and read config.
-- **Test:** `node --test js/` (Node's built-in runner). Only `js/team-display.js` is unit-tested — it's the one module with a `module.exports` guard so it loads under Node. Run one file: `node --test js/team-display.test.js`.
+- **Test:** `node --test js/*.test.js` (Node's built-in runner). Note: `node --test js/` fails on Node ≥24 (`Cannot find module '.../js'`) — use the glob. Only modules with a `module.exports` guard load under Node and are unit-tested: `js/team-display.js` and `js/match-teams.js`. Run one file: `node --test js/team-display.test.js`.
 - **Deploy:** push to `main`. PRs get a Firebase Hosting preview via `.github/workflows/firebase-hosting-pull-request.yml`. Data (teams, matches, votes) is edited live from the admin panel, never via code.
 
 ## Architecture
@@ -37,4 +37,4 @@ Teams/matches carry a `tournament` field: `"calcetto"`, `"splash"`, or `"entramb
 ## Gotchas
 
 - `firestore.rules` is referenced by `README.md` and the security model but **is not committed** to the repo — the live rules exist only in the Firebase console. If you change read/write assumptions, the rules must be updated there manually (and re-published after every edit).
-- No linter, formatter, or CI test step is configured — the only automated check is the Firebase preview deploy on PRs. Run `node --test js/` yourself before committing changes to `team-display.js`.
+- No linter, formatter, or CI test step is configured — the only automated check is the Firebase preview deploy on PRs. Run `node --test js/*.test.js` yourself before committing changes to `team-display.js` or `match-teams.js`.
