@@ -540,7 +540,7 @@ async function adminDeleteMatch(id) {
   const m = state.matches.find((x) => x.id === id);
   const okc = await confirmDialog({
     title: "Elimina partita",
-    bodyHtml: `Eliminare la partita <b>${m ? teamDotById(m.teamA) : ""}${esc(teamName(m && m.teamA))} vs ${m ? teamDotById(m.teamB) : ""}${esc(teamName(m && m.teamB))}</b>?`
+    bodyHtml: `Eliminare la partita <b>${m ? matchTeamDot(m, "A") : ""}${esc(matchTeamName(m, "A"))} vs ${m ? matchTeamDot(m, "B") : ""}${esc(matchTeamName(m, "B"))}</b>?`
       + (m && m.played ? "<br>Il risultato inserito andrà perso." : ""),
     okLabel: "Elimina",
   });
@@ -617,7 +617,7 @@ function renderAdminMatches() {
   const q = admin.matchQuery.trim().toLowerCase();
   let ms = [...state.matches].sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
   if (q) ms = ms.filter((m) =>
-    `${m.day} ${m.time} ${teamName(m.teamA)} ${teamName(m.teamB)} ${m.label || ""}`.toLowerCase().includes(q));
+    `${m.day} ${m.time} ${matchTeamName(m, "A")} ${matchTeamName(m, "B")} ${m.label || ""}`.toLowerCase().includes(q));
   if (!ms.length) {
     el.innerHTML = `<p class="muted">${q ? "Nessuna partita trovata." : "Nessuna partita. Aggiungine una qui a fianco."}</p>`;
     return;
@@ -630,7 +630,7 @@ function renderAdminMatches() {
       ${byDay[day].map((m) => `
         <div class="admin-item" data-id="${esc(m.id)}">
           <span>${m.tournament === "calcetto" ? "⚽" : "🏐"}</span>
-          <span class="grow">${esc(m.time)} · ${teamDotById(m.teamA)}${esc(teamName(m.teamA))} vs ${teamDotById(m.teamB)}${esc(teamName(m.teamB))}${m.played ? ` <b>(${m.scoreA}–${m.scoreB})</b>` : ""}${m.label ? ` <span class="muted">· ${esc(m.label)}</span>` : ""}</span>
+          <span class="grow">${esc(m.time)} · ${matchTeamDot(m, "A")}${esc(matchTeamName(m, "A"))} vs ${matchTeamDot(m, "B")}${esc(matchTeamName(m, "B"))}${m.played ? ` <b>(${m.scoreA}–${m.scoreB})</b>` : ""}${m.label ? ` <span class="muted">· ${esc(m.label)}</span>` : ""}</span>
           <button title="Modifica" aria-label="Modifica partita" onclick="startEditMatch('${m.id}')">✏️</button>
           <button title="Elimina" aria-label="Elimina partita" onclick="adminDeleteMatch('${m.id}')">🗑️</button>
         </div>`).join("")}
@@ -737,8 +737,8 @@ function loadResultEditor() {
   document.getElementById("rScorersBox").hidden = !isCalcetto;
   if (isCalcetto) {
     const selT = document.getElementById("rScorerTeam");
-    selT.options[0].text = teamName(m.teamA);
-    selT.options[1].text = teamName(m.teamB);
+    selT.options[0].text = matchTeamName(m, "A");
+    selT.options[1].text = matchTeamName(m, "B");
     fillScorerPlayers();
     renderScorerList();
   }
@@ -759,7 +759,7 @@ function renderScorerList() {
   const el = document.getElementById("rScorersList");
   el.innerHTML = admin.scorers.map((s, i) => `
     <div class="admin-item">
-      <span class="grow">${esc(s.player)} (${teamDotById(s.team === "A" ? m.teamA : m.teamB)}${esc(teamName(s.team === "A" ? m.teamA : m.teamB))}) ×${s.goals}</span>
+      <span class="grow">${esc(s.player)} (${matchTeamDot(m, s.team)}${esc(matchTeamName(m, s.team))}) ×${s.goals}</span>
       <button title="Rimuovi" onclick="adminRemoveScorer(${i})">🗑️</button>
     </div>`).join("") || '<p class="muted">Nessun marcatore inserito.</p>';
 }
