@@ -6,6 +6,8 @@ const state = {
   matches: [],
   votes: [],    // voti MVP (con id documento)
   fanta: [],    // punti fanta
+  bonus: [],    // punti bonus classifica (manuali)
+  fantaBonusMap: [], // punti classifica per piazzamento Fanta [1°, 2°, 3°, …]
   photos: [],   // foto/video approvati
   tourney: "calcetto",
   uid: null,    // uid Firebase (anonimo o admin)
@@ -53,6 +55,20 @@ function subscribeData() {
   db.collection("fanta").onSnapshot((snap) => {
     state.fanta = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderFanta();
+    renderStandings(); // il piazzamento Fanta alimenta i bonus classifica
+    if (typeof renderAdmin === "function") renderAdmin();
+  });
+  db.collection("bonus").onSnapshot((snap) => {
+    state.bonus = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderStandings();
+    if (typeof renderAdmin === "function") renderAdmin();
+  });
+  db.collection("config").doc("fantaBonus").onSnapshot((doc) => {
+    const data = doc.exists ? doc.data() : null;
+    state.fantaBonusMap = (data && Array.isArray(data.places))
+      ? data.places.map((n) => Number(n) || 0)
+      : [];
+    renderStandings();
     if (typeof renderAdmin === "function") renderAdmin();
   });
   db.collection("photos").where("approved", "==", true).onSnapshot((snap) => {
@@ -349,16 +365,37 @@ function renderStandings() {
     else if (m.scoreA < m.scoreB) { b.w++; a.l++; b.pts += 3; }
     else { a.d++; b.d++; a.pts++; b.pts++; }
   });
-  const rows = Object.values(table).sort((x, y) => y.pts - x.pts || (y.gf - y.gs) - (x.gf - x.gs) || y.gf - x.gf);
+  // Somma i bonus (manuali + piazzamento Fanta) ai punti partita prima di ordinare
+  const list = Object.values(table);
+  list.forEach((r) => {
+    r.matchPts = r.pts;
+    r.manualBonus = state.bonus
+      .filter((b) => b.teamId === r.id)
+      .reduce((s, b) => s + (Number(b.points) || 0), 0);
+    r.fantaBonus = fantaPlacementBonus(r.id);
+    r.bonus = r.manualBonus + r.fantaBonus;
+    r.pts += r.bonus;
+  });
+  const rows = list.sort((x, y) => y.pts - x.pts || (y.gf - y.gs) - (x.gf - x.gs) || y.gf - x.gf);
   const unit = state.tourney === "calcetto" ? "Gol" : "Set";
+  const anyBonus = rows.some((r) => r.bonus);
   el.innerHTML = `
     <table class="rank">
       <tr><th>#</th><th>Squadra</th><th>Pt</th><th>G</th><th>V</th><th>N</th><th>P</th><th>${unit} F</th><th>${unit} S</th></tr>
       ${rows.map((r, i) => `
-        <tr><td>${i + 1}</td><td>${teamDotById(r.id)}${esc(teamName(r.id))}</td><td><b>${r.pts}</b></td>
+        <tr><td>${i + 1}</td><td>${teamDotById(r.id)}${esc(teamName(r.id))}</td><td><b>${r.pts}</b>${bonusBadge(r)}</td>
         <td>${r.g}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.gs}</td></tr>`).join("")}
     </table>
-    <p class="muted" style="font-size:.8rem">Vittoria 3 pt · Pareggio 1 pt · Sconfitta 0 pt</p>`;
+    <p class="muted" style="font-size:.8rem">Vittoria 3 pt · Pareggio 1 pt · Sconfitta 0 pt${anyBonus ? " · bonus Fanta e classifica inclusi nei punti" : ""}</p>`;
+}
+
+// Badge accanto al totale punti che spiega la componente bonus
+function bonusBadge(r) {
+  if (!r.bonus) return "";
+  const parts = [`Partite ${r.matchPts}`];
+  if (r.fantaBonus) parts.push(`Fanta ${r.fantaBonus > 0 ? "+" : ""}${r.fantaBonus}`);
+  if (r.manualBonus) parts.push(`Bonus ${r.manualBonus > 0 ? "+" : ""}${r.manualBonus}`);
+  return ` <span class="pts-bonus" title="${esc(parts.join(" · "))}">${r.bonus > 0 ? "+" : ""}${r.bonus}</span>`;
 }
 
 function renderScorers() {
@@ -389,6 +426,33 @@ function renderScorers() {
 }
 
 // ---------- Fanta Splash ----------
+// Classifica Fanta ordinata del torneo attivo: [{teamId, pts}] (decrescente)
+function fantaRanking() {
+  const totals = {};
+  state.fanta.forEach((f) => {
+    const team = teamById(f.teamId);
+    if (!team || !inTourney(team)) return;
+    totals[f.teamId] = (totals[f.teamId] || 0) + (Number(f.points) || 0);
+  });
+  return Object.entries(totals)
+    .map(([teamId, pts]) => ({ teamId, pts }))
+    .sort((a, b) => b.pts - a.pts);
+}
+
+// Bonus classifica derivato dal piazzamento Fanta.
+// Pari merito condividono il posto (ranking "standard": 1,1,3…).
+function fantaPlacementBonus(teamId) {
+  const map = state.fantaBonusMap;
+  if (!map || !map.length) return 0;
+  const rank = fantaRanking();
+  let place = 0, prevPts = null;
+  for (let i = 0; i < rank.length; i++) {
+    if (prevPts === null || rank[i].pts !== prevPts) { place = i + 1; prevPts = rank[i].pts; }
+    if (rank[i].teamId === teamId) return Number(map[place - 1]) || 0;
+  }
+  return 0;
+}
+
 function renderFanta() {
   const rankEl = document.getElementById("fantaRanking");
   const logEl = document.getElementById("fantaLog");
@@ -397,15 +461,7 @@ function renderFanta() {
     logEl.innerHTML = "";
     return;
   }
-  const totals = {};
-  state.fanta.forEach((f) => {
-    const team = teamById(f.teamId);
-    if (!team || !inTourney(team)) return;
-    totals[f.teamId] = (totals[f.teamId] || 0) + (Number(f.points) || 0);
-  });
-  const rows = Object.entries(totals)
-    .map(([teamId, pts]) => ({ teamId, pts }))
-    .sort((a, b) => b.pts - a.pts);
+  const rows = fantaRanking();
   if (!rows.length) {
     rankEl.innerHTML = '<p class="muted">Nessun punto assegnato per ora…</p>';
     logEl.innerHTML = "";

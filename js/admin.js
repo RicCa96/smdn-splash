@@ -9,11 +9,13 @@ const admin = {
   editTeamId: null,  // id squadra in modifica (null = nuova)
   editMatchId: null, // id partita in modifica
   editFantaId: null, // id voce fanta in modifica
+  editBonusId: null, // id voce bonus classifica in modifica
   flashId: null,     // id riga da evidenziare dopo il salvataggio
   resultFilter: "pending", // filtro lista risultati: "pending" | "all"
   teamQuery: "",     // testo di ricerca liste admin
   matchQuery: "",
   fantaQuery: "",
+  bonusQuery: "",
 };
 
 // Evidenzia (e scorre verso) la riga appena aggiunta/modificata
@@ -157,6 +159,9 @@ async function dbUpdate(coll, id, data) {
 }
 async function dbDelete(coll, id) {
   await db.collection(coll).doc(id).delete();
+}
+async function dbSet(coll, id, data) {
+  await db.collection(coll).doc(id).set(data);
 }
 
 // ---------- Squadre ----------
@@ -474,6 +479,88 @@ async function adminDeleteFanta(id) {
   } catch (e) { console.error(e); toast("❌ Errore"); }
 }
 
+// ---------- Bonus classifica ----------
+document.getElementById("btnAddBonus").addEventListener("click", (e) => {
+  const teamId = document.getElementById("bTeam").value;
+  const reason = document.getElementById("bReason").value.trim();
+  const points = Number(document.getElementById("bPoints").value);
+  if (!teamId) return toast("Seleziona la squadra");
+  if (!reason) return toast("Indica il motivo");
+  if (!points) return toast("Indica i punti");
+  const editing = admin.editBonusId;
+  withBusy(e.currentTarget, "⏳ Salvataggio…", async () => {
+    try {
+      if (editing) {
+        await dbUpdate("bonus", editing, { teamId, reason, points });
+        admin.flashId = editing;
+        toast("✅ Bonus aggiornato");
+      } else {
+        admin.flashId = await dbAdd("bonus", { teamId, reason, points, ts: Date.now() });
+        toast("✅ Bonus assegnato");
+      }
+      resetBonusForm();
+    } catch (err) { console.error(err); toast("❌ Errore nel salvataggio"); }
+  });
+});
+
+function startEditBonus(id) {
+  const b = state.bonus.find((x) => x.id === id);
+  if (!b) return;
+  admin.editBonusId = id;
+  document.getElementById("bTeam").value = b.teamId || "";
+  document.getElementById("bReason").value = b.reason || "";
+  document.getElementById("bPoints").value = b.points;
+  document.getElementById("bonusFormTitle").textContent = "✏️ Modifica bonus";
+  document.getElementById("btnAddBonus").textContent = "💾 Salva modifiche";
+  document.getElementById("btnCancelBonus").hidden = false;
+  document.getElementById("bTeam").scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function resetBonusForm() {
+  admin.editBonusId = null;
+  document.getElementById("bPoints").value = "";
+  document.getElementById("bReason").value = "";
+  document.getElementById("bonusFormTitle").textContent = "➕ Assegna bonus classifica";
+  document.getElementById("btnAddBonus").textContent = "✅ Assegna bonus";
+  document.getElementById("btnCancelBonus").hidden = true;
+}
+
+document.getElementById("btnCancelBonus").addEventListener("click", resetBonusForm);
+
+async function adminDeleteBonus(id) {
+  const b = state.bonus.find((x) => x.id === id);
+  const pts = b ? (b.points > 0 ? "+" : "") + b.points : "";
+  const okc = await confirmDialog({
+    title: "Rimuovi bonus",
+    bodyHtml: `Rimuovere <b>${esc(pts)}</b> da ${b ? teamDotById(b.teamId) : ""}<b>${esc(teamName(b && b.teamId))}</b>${b ? ` (${esc(b.reason)})` : ""}?`,
+    okLabel: "Rimuovi",
+  });
+  if (!okc) return;
+  const backup = b ? { ...b } : null;
+  try {
+    await dbDelete("bonus", id);
+    if (backup) {
+      const { id: _drop, ...data } = backup;
+      toastUndo("🗑️ Bonus rimosso", async () => {
+        try { admin.flashId = await dbAdd("bonus", data); toast("↩︎ Bonus ripristinato"); }
+        catch (e) { console.error(e); toast("❌ Ripristino fallito"); }
+      });
+    } else toast("🗑️ Bonus rimosso");
+  } catch (e) { console.error(e); toast("❌ Errore"); }
+}
+
+// Mappa piazzamento Fanta → punti classifica (config/fantaBonus)
+document.getElementById("btnSaveBonusMap").addEventListener("click", (e) => {
+  const raw = document.getElementById("bonusPlaces").value;
+  const places = raw.split(",").map((s) => Number(s.trim())).filter((n) => !Number.isNaN(n));
+  withBusy(e.currentTarget, "⏳ Salvataggio…", async () => {
+    try {
+      await dbSet("config", "fantaBonus", { places });
+      toast("✅ Bonus piazzamento salvato");
+    } catch (err) { console.error(err); toast("❌ Errore nel salvataggio"); }
+  });
+});
+
 // ---------- Foto ----------
 async function adminApprovePhoto(id) {
   try { await adminUpdatePhoto(id, { approved: true }); toast("✅ Pubblicata"); }
@@ -514,9 +601,10 @@ async function adminDeleteTeam(id) {
   const t = teamById(id);
   const nVotes = state.votes.filter((v) => v.teamId === id).length;
   const nFanta = state.fanta.filter((f) => f.teamId === id).length;
+  const nBonus = state.bonus.filter((b) => b.teamId === id).length;
   const plur = (n, s, p) => `${n} ${n === 1 ? s : p}`;
-  const extra = (nVotes || nFanta)
-    ? `<br>Verranno rimossi anche <b>${plur(nVotes, "voto MVP", "voti MVP")}</b> e <b>${plur(nFanta, "voce fanta", "voci fanta")}</b>.`
+  const extra = (nVotes || nFanta || nBonus)
+    ? `<br>Verranno rimossi anche <b>${plur(nVotes, "voto MVP", "voti MVP")}</b>, <b>${plur(nFanta, "voce fanta", "voci fanta")}</b> e <b>${plur(nBonus, "bonus", "bonus")}</b>.`
     : "";
   const okc = await confirmDialog({
     title: "Elimina squadra",
@@ -531,8 +619,10 @@ async function adminDeleteTeam(id) {
     votes.forEach((d) => batch.delete(d.ref));
     const fanta = await db.collection("fanta").where("teamId", "==", id).get();
     fanta.forEach((d) => batch.delete(d.ref));
+    const bonus = await db.collection("bonus").where("teamId", "==", id).get();
+    bonus.forEach((d) => batch.delete(d.ref));
     await batch.commit();
-    toast("🗑️ Squadra eliminata (con voti e punti fanta)");
+    toast("🗑️ Squadra eliminata (con voti, punti fanta e bonus)");
   } catch (e) { console.error(e); toast("❌ Errore"); }
 }
 
@@ -567,15 +657,19 @@ function wireListFilter(inputId, key, renderFn) {
 wireListFilter("teamFilter", "teamQuery", renderAdminTeams);
 wireListFilter("matchFilter", "matchQuery", renderAdminMatches);
 wireListFilter("fantaFilter", "fantaQuery", renderAdminFanta);
+wireListFilter("bonusFilter", "bonusQuery", renderAdminBonus);
 
 function renderAdmin() {
   if (!admin.logged) return;
   renderAdminTeams();
   renderAdminMatches();
   renderAdminFanta();
+  renderAdminBonus();
+  renderBonusMap();
   renderAdminPhotos();
   fillMatchTeamSelects();
   fillFantaTeamSelect();
+  fillBonusTeamSelect();
   renderResultList();
 }
 
@@ -652,6 +746,42 @@ function renderAdminFanta() {
     </div>`).join("")
     || `<p class="muted">${q ? "Nessuna voce trovata." : "Nessun punto assegnato."}</p>`;
   applyFlash("adminFantaList");
+}
+
+function renderAdminBonus() {
+  const el = document.getElementById("adminBonusList");
+  const q = admin.bonusQuery.trim().toLowerCase();
+  let entries = [...state.bonus].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  if (q) entries = entries.filter((b) => `${teamName(b.teamId)} ${b.reason}`.toLowerCase().includes(q));
+  el.innerHTML = entries.map((b) => `
+    <div class="admin-item" data-id="${esc(b.id)}">
+      <span class="fanta-pts ${b.points < 0 ? "neg" : ""}">${b.points > 0 ? "+" : ""}${b.points}</span>
+      <span class="grow">${teamDotById(b.teamId)}<b>${esc(teamName(b.teamId))}</b> · ${esc(b.reason)}${b.ts ? ` <span class="muted">· ${esc(timeAgo(b.ts))}</span>` : ""}</span>
+      <button title="Modifica" aria-label="Modifica bonus" onclick="startEditBonus('${b.id}')">✏️</button>
+      <button title="Rimuovi" aria-label="Rimuovi bonus" onclick="adminDeleteBonus('${b.id}')">🗑️</button>
+    </div>`).join("")
+    || `<p class="muted">${q ? "Nessun bonus trovato." : "Nessun bonus assegnato."}</p>`;
+  applyFlash("adminBonusList");
+}
+
+function fillBonusTeamSelect() {
+  const sel = document.getElementById("bTeam");
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Squadra…</option>' + [...state.teams]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");
+  if (prev && state.teams.some((t) => t.id === prev)) sel.value = prev;
+}
+
+function renderBonusMap() {
+  const inp = document.getElementById("bonusPlaces");
+  const prev = document.getElementById("bonusMapPreview");
+  const map = state.fantaBonusMap || [];
+  // non sovrascrive il campo mentre l'admin sta digitando
+  if (document.activeElement !== inp) inp.value = map.join(", ");
+  prev.textContent = map.length
+    ? "Piazzamenti: " + map.map((n, i) => `${i + 1}°→${n > 0 ? "+" : ""}${n}`).join(" · ")
+    : "Nessun bonus piazzamento impostato.";
 }
 
 function renderAdminPhotos() {

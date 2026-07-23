@@ -240,6 +240,13 @@ table.rank tbody tr:first-child td, table.rank tr:nth-child(2) td { background: 
 }
 .fanta-pts.neg { background: #fdecee; color: var(--red); }
 
+/* Badge bonus accanto al totale punti in classifica */
+.pts-bonus {
+  display: inline-block; margin-left: .25rem; font-size: .72rem; font-weight: 700;
+  color: #14833b; background: #e8f8ef; border-radius: 6px; padding: 0 .3rem;
+  vertical-align: middle; cursor: help;
+}
+
 /* ===== Galleria ===== */
 .upload-row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
 .upload-row input[type="text"] { flex: 1; min-width: 180px; }

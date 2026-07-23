@@ -242,6 +242,7 @@
         <button class="aapp-navitem" id="atab-partite" data-atab="partite" role="tab" aria-selected="false" aria-controls="apane-partite" tabindex="-1">📅 <span>Partite</span></button>
         <button class="aapp-navitem" id="atab-risultati" data-atab="risultati" role="tab" aria-selected="false" aria-controls="apane-risultati" tabindex="-1">🎯 <span>Risultati</span></button>
         <button class="aapp-navitem" id="atab-fanta" data-atab="fanta" role="tab" aria-selected="false" aria-controls="apane-fanta" tabindex="-1">🌊 <span>Fanta</span></button>
+        <button class="aapp-navitem" id="atab-bonus" data-atab="bonus" role="tab" aria-selected="false" aria-controls="apane-bonus" tabindex="-1">⭐ <span>Bonus</span></button>
         <button class="aapp-navitem" id="atab-foto" data-atab="foto" role="tab" aria-selected="false" aria-controls="apane-foto" tabindex="-1">📸 <span>Foto</span></button>
       </nav>
 
@@ -424,6 +425,49 @@
               <h3>Punti assegnati</h3>
               <input type="search" id="fantaFilter" class="list-filter" placeholder="🔍 Cerca (squadra o motivo)…" aria-label="Cerca voce fanta">
               <div id="adminFantaList"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bonus classifica -->
+        <section class="aapp-pane" id="apane-bonus" role="tabpanel" aria-labelledby="atab-bonus" tabindex="0" hidden>
+          <div class="pane-grid">
+            <div class="pane-col card">
+              <h3 id="bonusFormTitle">➕ Assegna bonus classifica</h3>
+              <p class="pane-hint muted">Punti extra (o penalità) che si sommano ai punti della Classifica del torneo attivo.</p>
+              <div class="field">
+                <label for="bTeam">Squadra</label>
+                <select id="bTeam"><option value="">Squadra…</option></select>
+              </div>
+              <div class="field">
+                <label for="bReason">Motivo</label>
+                <input type="text" id="bReason" placeholder="es. Fair play, penalità…">
+              </div>
+              <div class="field">
+                <label for="bPoints">Punti <span class="muted">(anche negativi)</span></label>
+                <input type="number" id="bPoints" placeholder="es. 3" class="input-full">
+              </div>
+              <div class="form-actions">
+                <button id="btnAddBonus" class="btn btn-primary">✅ Assegna bonus</button>
+                <button id="btnCancelBonus" class="btn-ghost" hidden>Annulla</button>
+              </div>
+
+              <hr style="border:none;border-top:1px solid var(--border);margin:1.2rem 0">
+              <h3>🌊 Bonus piazzamento Fanta</h3>
+              <p class="pane-hint muted">Punti classifica assegnati automaticamente in base al piazzamento nella Fanta Splash. Un valore per posizione, separati da virgola (1°, 2°, 3°…). Si aggiornano dal vivo con la classifica Fanta.</p>
+              <div class="field">
+                <label for="bonusPlaces">Punti per piazzamento</label>
+                <input type="text" id="bonusPlaces" placeholder="es. 3, 2, 1" class="input-full">
+              </div>
+              <div class="form-actions">
+                <button id="btnSaveBonusMap" class="btn btn-primary">💾 Salva bonus piazzamento</button>
+              </div>
+              <p class="muted" id="bonusMapPreview"></p>
+            </div>
+            <div class="pane-col card">
+              <h3>Bonus assegnati</h3>
+              <input type="search" id="bonusFilter" class="list-filter" placeholder="🔍 Cerca (squadra o motivo)…" aria-label="Cerca bonus">
+              <div id="adminBonusList"></div>
             </div>
           </div>
         </section>

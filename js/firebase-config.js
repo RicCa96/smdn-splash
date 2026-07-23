@@ -12,5 +12,6 @@ const FIREBASE_CONFIG = {
   projectId: "smdn-splash",
   storageBucket: "smdn-splash.firebasestorage.app",
   messagingSenderId: "138489452302",
-  appId: "1:138489452302:web:caf0c6dd7c420bf38da95f"
+  appId: "1:138489452302:web:caf0c6dd7c420bf38da95f",
+  measurementId: "G-DR8755P38X"
 };
